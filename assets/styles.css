@@ -1,0 +1,67 @@
+div .disabled {
+    pointer-events:none;
+    background:#e4e4e4;
+}
+
+div .component-block {
+    padding: 20px;
+    background-color: #ffffff;
+    margin-top:20px;
+    border-radius: 10px
+}
+
+.component-block h3 {
+    margin-top: 0px;
+}
+
+#table_data {
+    overflow-x: auto;
+    overflow-y: auto;
+    height: 300px;
+}
+
+#output-data-upload{
+    background-color: rgb(212 212 212);
+    border: #a3a3a3 1px solid;
+}
+
+#output-data-upload hr{
+    display: none
+}
+
+#output-median p{
+    margin-bottom: 0px
+}
+
+.div_btn {
+    text-align: center;
+}
+
+div.card-graph{
+    padding: 20px;
+}
+
+div.dash-graph {
+    border: solid 4px #ececec;
+}
+
+.p-title {
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.01rem
+}
+
+.tooltip-inner {
+    text-align: start;
+    max-width: 500px !important
+}
+
+#calc-block{
+    margin-bottom: 100px
+}
+
+body {
+    background-color: #dedede;
+}
+
+
