@@ -335,6 +335,7 @@ def update_output(columns, data):
     return columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NaN значениями: {nas.max()}"
 
 
+
 # -------вычисление медианы-------
 @app.callback([Output('output-median', 'children'),
                Output('figure-block', 'style'),
@@ -407,4 +408,4 @@ def update_output(variation):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
