@@ -8,7 +8,6 @@ import graphs
 
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
-from dash.exceptions import PreventUpdate
 
 import pandas as pd
 import numpy as np
@@ -335,7 +334,6 @@ def update_output(columns, data):
     return columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NaN значениями: {nas.max()}"
 
 
-
 # -------вычисление медианы-------
 @app.callback([Output('output-median', 'children'),
                Output('figure-block', 'style'),
@@ -407,5 +405,6 @@ def update_output(variation):
     return dict_result['ph'], dict_result['multi']
 
 
+server = app.server
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(host="0.0.0.0", debug=False)
