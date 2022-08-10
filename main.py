@@ -8,6 +8,7 @@ import graphs
 
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
+from dash.dash_table.Format import Format, Scheme, Trim
 
 import pandas as pd
 import numpy as np
@@ -22,8 +23,8 @@ df = pd.DataFrame()
 def build_table(data):
     return html.Div([
         dash_table.DataTable(
-            data.to_dict('records'),
-            [{'name': i, 'id': i} for i in data.columns],
+            data=data.to_dict('records'),
+            columns=[{'name': i, 'id': i, 'type': 'numeric', 'format': Format(precision=2, scheme=Scheme.fixed, trim=Trim.yes)} for i in data.columns],
             id='table_data'
         )
     ])
