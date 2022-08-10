@@ -38,7 +38,7 @@ def out_error(text):
         style={'color': 'red'})
 
 
-def build_result(result_clmn1, result_clmn2, result_diff):
+def build_result(result_clmn1, result_clmn2, result_diff, alpha):
     median1 = np.round(result_clmn1['median'], 2)
     low1 = np.round(result_clmn1['low'], 2)
     up1 = np.round(result_clmn1['up'], 2)
@@ -50,14 +50,14 @@ def build_result(result_clmn1, result_clmn2, result_diff):
             html.P([html.B("Медиана №1 (столбец \"" + result_clmn1['column'] + "\"): "), str(median1)]),
             html.P([html.B("Нижняя граница: "), str(low1)]),
             html.P([html.B("Верхняя граница: "), str(up1)]),
-            html.P([html.B("Представление: "), str(median1) + " 95% ДИ [" + str(low1) + ";" + str(up1) + "]"]),
+            html.P([html.B("Представление: "), str(median1) + f" {alpha}% ДИ [" + str(low1) + ";" + str(up1) + "]"]),
             html.Br(),
             html.P([html.B("Медиана №2 (столбец \"" + result_clmn2['column'] + "\"): "), str(median2)]),
             html.P([html.B("Нижняя граница: "), str(low2)]),
             html.P([html.B("Верхняя граница: "), str(up2)]),
-            html.P([html.B("Представление: "), str(median2) + " 95% ДИ [" + str(low2) + ";" + str(up2) + "]"]),
+            html.P([html.B("Представление: "), str(median2) + f" {alpha}% ДИ [" + str(low2) + ";" + str(up2) + "]"]),
             html.Br(),
-            html.P([html.B("Разница медиан: "), str(np.round(result_diff['median'], 2)) + " 95% ДИ [" +
+            html.P([html.B("Разница медиан: "), str(np.round(result_diff['median'], 2)) + f" {alpha}% ДИ ["  +
                     str(np.round(result_diff['low'], 2)) + ";" + str(np.round(result_diff['up'], 2)) + "]"])
         ])
     else:
@@ -65,7 +65,7 @@ def build_result(result_clmn1, result_clmn2, result_diff):
             html.P([html.B("Медиана №1 (столбец \"" + result_clmn1['column'] + "\"): "), str(median1)]),
             html.P([html.B("Нижняя граница: "), str(low1)]),
             html.P([html.B("Верхняя граница: "), str(up1)]),
-            html.P([html.B("Представление: "), str(median1) + " 95% ДИ [" + str(low1) + ";" + str(up1) + "]"])
+            html.P([html.B("Представление: "), str(median1) + f" {alpha}% ДИ [" + str(low1) + ";" + str(up1) + "]"])
         ])
 
 
@@ -182,15 +182,15 @@ app.layout = html.Div(
                                 style={'font-size': '1.5rem'}),
                          dbc.Tooltip(
                              ["Описание каждого режима:", html.Br(),
-                              html.B("Вычислить доверительный интервал для медианы:"),
+                              html.B("Вычисление доверительный интервал для медианы:"),
                               " вычислить доверительный интервал медианы для одной выборки "
                               "(необходимо  выбрать 1 столбец с данными выборки);", html.Br(),
-                              html.B("Независимые выборки:"),
+                              html.B("Вычисление доверительного интервала разницы медиан для независимых выборок:"),
                               " процедура эксперимента и полученные результаты измерения некоторого свойства у испытуемых"
                               "одной выборки не оказывают влияния на особенности протекания этого же эксперимента и на результаты "
                               "измерения этого же свойства у испытуемых (респондентов) другой выборки "
                               "(необходимо выбрать 2 столбца из таблицы, определяющих группы испытуемых);", html.Br(),
-                              html.B("Использовать интерполяцию:"),
+                              html.B("Вычисление доверительного интервала разницы медиан для зависимых выборок:"),
                               " процедура эксперимента и полученные результаты измерения некоторого свойства, "
                               "проведенные на одной выборке, оказывают влияние на другую "
                               "(необходимо выбрать 2 столбца из таблицы, определяющих результаты одной и той же группы испытуемых в разные промежутки времени)"
@@ -203,9 +203,18 @@ app.layout = html.Div(
                          ]),
                 dcc.RadioItems(id='calc_variation',
                                options=dict(v1='  Вычислить доверительный интервал для медианы',
-                                            v2='  Независимые выборки',
-                                            v3='  Зависимые выборки'),
+                                            v2='  Вычислить доверительный интервал для независимых выборок',
+                                            v3='  Вычислить доверительный интервал для зависимых выборок'),
                                value='v1'),
+                html.H5("Уровень значимости"),
+                dcc.RadioItems(id='alpha_variation',
+                               options={
+                                    '90': '\xa090%',
+                                    '95': '\xa095%',
+                                    '98': '\xa098%',
+                                    '99': '\xa099%',
+                                    '99,9': '\xa099.9%'},
+                               value='90'),
                 html.Div([
                     html.H5("Выбор данных для вычисления медианы"),
                     dcc.Dropdown([],
@@ -295,8 +304,8 @@ def parse_contents(contents, filename):
 @app.callback([Output('output-data-upload', 'children'),
                Output('calc-block', 'style'),
                Output('body-error-upload', 'children')],
-              Input('upload-data', 'contents'),
-              Input('submit-NA', 'n_clicks'),
+              [Input('upload-data', 'contents'),
+              Input('submit-NA', 'n_clicks')],
               State('upload-data', 'filename'),
               State('table_data', 'data'),
               State('table_data', 'columns'),
@@ -351,8 +360,9 @@ def update_output(columns, data):
               State('table_data', 'data'),
               State('table_data', 'columns'),
               State('calc_variation', 'value'),
+              State('alpha_variation', 'value'),
               State('select_column', 'value'))
-def update_output(n_clicks, data, columns, variation, slt_columns):
+def update_output(n_clicks, data, columns, variation, alpha, slt_columns):
     df = pd.DataFrame(data, columns=[c['name'] for c in columns])
     style_out = {'display': 'none'}
     style_v2_out = {'display': 'none'}
@@ -363,8 +373,8 @@ def update_output(n_clicks, data, columns, variation, slt_columns):
         if df.dtypes[slt_columns] not in [np.int64, np.float64]:
             return dash.no_update, style_out, dash.no_update, dash.no_update, \
                    dash.no_update, dash.no_update, style_v2_out, out_error("Неверный тип данных в столбце")
-        dict_m1 = calc_moda.find_moda(df, slt_columns, None, variation)
-        result = build_result(dict_m1, None, None)
+        dict_m1 = calc_median.find_moda(df, slt_columns, None, variation, alpha)
+        result = build_result(dict_m1, None, None, alpha)
         style_out = {'display': 'block'}
         figure_m1 = graphs.to_build_distr(dict_m1, 'v1')
         figure_m2 = graphs.return_nan_figure()
@@ -379,10 +389,10 @@ def update_output(n_clicks, data, columns, variation, slt_columns):
                 return dash.no_update, style_out, dash.no_update, dash.no_update, \
                        dash.no_update, dash.no_update, style_v2_out, out_error(
                     f"Неверный тип данных в столбце \"{col}\"")
-        dict_m1 = calc_moda.find_moda(df, slt_columns[0], None, 'v1')
-        dict_m2 = calc_moda.find_moda(df, slt_columns[1], None, 'v1')
-        dict_diff = calc_moda.find_moda(df, slt_columns[0], slt_columns[1], variation)
-        result = build_result(dict_m1, dict_m2, dict_diff)
+        dict_m1 = calc_median.find_moda(df, slt_columns[0], None, 'v1', alpha)
+        dict_m2 = calc_median.find_moda(df, slt_columns[1], None, 'v1', alpha)
+        dict_diff = calc_median.find_moda(df, slt_columns[0], slt_columns[1], variation, alpha)
+        result = build_result(dict_m1, dict_m2, dict_diff, alpha)
         style_out = {'display': 'block'}
         style_v2_out = {'display': 'block'}
         figure_m1 = graphs.to_build_distr(dict_m1, 'v1')

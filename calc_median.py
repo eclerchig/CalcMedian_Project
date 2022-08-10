@@ -1,14 +1,19 @@
-import pandas as pd
 import numpy as np
 import math
+z_values = {'90': 1.28,
+            '95': 1.96,
+            '98': 2.32,
+            '99': 2.57,
+            '99,9': 3.29}
 
-def find_moda(data, column1, column2, variation):
+
+def find_moda(data, column1, column2, variation, alpha):
     global result
     if variation == 'v1':
         g1 = np.array(data[column1], float)
         g1 = g1[np.logical_not(np.isnan(g1))]
-        up_index = int(np.round(1 + g1.size/2 + (1.96 * np.sqrt(g1.size)/2)))
-        low_index = int(np.round(g1.size / 2 - (1.96 * np.sqrt(g1.size) / 2)))
+        up_index = int(np.round(1 + g1.size/2 + (z_values[alpha] * np.sqrt(g1.size)/2)))
+        low_index = int(np.round(g1.size / 2 - (z_values[alpha] * np.sqrt(g1.size) / 2)))
         g1.sort()
         low = g1[low_index]
         up = g1[up_index]
@@ -20,7 +25,7 @@ def find_moda(data, column1, column2, variation):
         g1 = g1[np.logical_not(np.isnan(g1))]
         g2 = g2[np.logical_not(np.isnan(g2))]
         row = np.zeros(g1.size*g2.size) #заполнение 0 массива размером g1*g2
-        k = (g1.size*g2.size)/2-(1.96*math.sqrt(g1.size*g2.size*(g1.size+g2.size+1)/12))
+        k = (g1.size*g2.size)/2-(z_values[alpha]*math.sqrt(g1.size*g2.size*(g1.size+g2.size+1)/12))
         count = 0
         for i in range(g2.size):
             for j in range(g1.size):
@@ -37,7 +42,7 @@ def find_moda(data, column1, column2, variation):
         for i in range(g.size):
             size += g.size - i
         row = np.zeros(size)
-        k = (g.size * (g.size + 1)) / 4 - (1.96 * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
+        k = (g.size * (g.size + 1)) / 4 - (z_values[alpha] * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
         count = 0
         for i in range(g.size):
             for j in range(i, g.size):
