@@ -1,6 +1,5 @@
 import pandas as pd
-import numpy as np
-import math
+import statistics
 
 
 def execute(dict_data, dict_columns, variation):
@@ -14,5 +13,10 @@ def execute(dict_data, dict_columns, variation):
             df[col].fillna(df[col].mean(), inplace=True)
         result = df
     elif variation == 'v3':
+        for col in columns:
+            median = statistics.median(df[col])
+            df[col].fillna(median, inplace=True)
+        result = df
+    elif variation == 'v4':
         result = df.interpolate(method="linear")
     return result

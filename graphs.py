@@ -63,9 +63,9 @@ def to_build_distr(dict_data, variation):
                          fillcolor="green", opacity=0.25, line_width=0)
 
     if variation == 'v1':
-        title = 'Распределение стандартизированных данных из столбца \"' + str(dict_data['column']) + '\"'
+        title = str(dict_data['column'])
     else:
-        title = 'Распределение стандартизированных разниц медиан данных из столбцов \"' \
+        title = 'Разница медиан \"' \
                 + str(dict_data['column'][0]) + '\" и \"' \
                 + str(dict_data['column'][1]) + '\"'
     line_distr.update_layout(
