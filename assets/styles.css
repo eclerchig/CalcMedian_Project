@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200&family=PT+Sans&family=Roboto+Condensed:wght@300&display=swap');
+
 div .disabled {
     pointer-events:none;
     background:#e4e4e4;
@@ -7,7 +9,8 @@ div .component-block {
     padding: 20px;
     background-color: #ffffff;
     margin-top:20px;
-    border-radius: 10px
+    border-radius: 10px;
+    border: solid 1px #d3c3b6;
 }
 
 .component-block h3 {
@@ -56,12 +59,56 @@ div.dash-graph {
     max-width: 500px !important
 }
 
-#calc-block{
-    margin-bottom: 100px
-}
-
 body {
-    background-color: #dedede;
+    background-color: #cbb59b;
 }
 
+html, body {
+    font-family: Arial, sans-serif;
+    color: #261406;
+}
 
+.uppercase {
+    text-transform: uppercase;
+}
+
+.logo-info {
+    color: #7d6857 !important;
+    text-decoration: none
+}
+
+#navbar {
+    background-color: #f2ede9;
+    color: #7d6857 !important;
+    text-align:center;
+    border-bottom: solid;
+}
+
+#navbar p
+{
+    margin-bottom: 0.01rem;
+    font-size: 25px
+}
+
+#logo {
+    padding: 5px 0px
+}
+
+#footer {
+    background-color: #343434;
+    margin-top: 25px;
+    color: #b4a191;
+    font-family: 'Nunito', Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 1.14px;
+    padding-top: 20px
+}
+
+.non_indent
+{
+    margin-left: 0px !important;
+    margin-right: 0px !important;
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}

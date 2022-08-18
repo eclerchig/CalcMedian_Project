@@ -24,7 +24,8 @@ def build_table(data):
     return html.Div([
         dash_table.DataTable(
             data=data.to_dict('records'),
-            columns=[{'name': i, 'id': i, 'type': 'numeric', 'format': Format(precision=2, scheme=Scheme.fixed, trim=Trim.yes)} for i in data.columns],
+            columns=[{'name': i, 'id': i, 'type': 'numeric',
+                      'format': Format(precision=2, scheme=Scheme.fixed, trim=Trim.yes)} for i in data.columns],
             id='table_data'
         )
     ])
@@ -57,7 +58,7 @@ def build_result(result_clmn1, result_clmn2, result_diff, alpha):
             html.P([html.B("Верхняя граница: "), str(up2)]),
             html.P([html.B("Представление: "), str(median2) + f" {alpha}% ДИ [" + str(low2) + ";" + str(up2) + "]"]),
             html.Br(),
-            html.P([html.B("Разница медиан: "), str(np.round(result_diff['median'], 2)) + f" {alpha}% ДИ ["  +
+            html.P([html.B("Разница медиан: "), str(np.round(result_diff['median'], 2)) + f" {alpha}% ДИ [" +
                     str(np.round(result_diff['low'], 2)) + ";" + str(np.round(result_diff['up'], 2)) + "]"])
         ])
     else:
@@ -69,8 +70,32 @@ def build_result(result_clmn1, result_clmn2, result_diff, alpha):
         ])
 
 
-app.layout = html.Div(
+app.layout = html.Div([
     dbc.Row([
+        dbc.Col([
+            html.A(
+                dbc.Row([
+                    html.Span(["Федеральное государственное бюджетное научное учреждение"],
+                              className="uppercase"),
+                    dbc.Col([html.Img(src="assets/img/logo.png")],
+                            id="logo")
+                ],
+                    align="center"),
+                href="https://health-family.ru/ru/",
+                className="logo-info"),
+            dbc.Row([
+                html.Span([
+                    html.P(["ДОВЕРИТЕЛЬНЫЙ ИНТЕРВАЛ ДЛЯ МЕДИАН И ИХ РАЗНОСТЕЙ:"]),
+                    html.P(["АВТОМАТИЗАЦИЯ РАСЧЕТА И ВИЗУАЛИЗАЦИЯ"])
+                ],
+                    id="title",
+                    className="uppercase")],
+                align="center"
+            )
+        ],
+            id="navbar",
+            className="col-12"
+        ),
         dbc.Col([
             dbc.Col([
                 html.H3(children=[
@@ -209,11 +234,11 @@ app.layout = html.Div(
                 html.H5("Уровень значимости"),
                 dcc.RadioItems(id='alpha_variation',
                                options={
-                                    '90': '\xa090%',
-                                    '95': '\xa095%',
-                                    '98': '\xa098%',
-                                    '99': '\xa099%',
-                                    '99,9': '\xa099.9%'},
+                                   '90': '\xa090%',
+                                   '95': '\xa095%',
+                                   '98': '\xa098%',
+                                   '99': '\xa099%',
+                                   '99,9': '\xa099.9%'},
                                value='90'),
                 html.Div([
                     html.H5("Выбор данных для вычисления медианы"),
@@ -278,9 +303,17 @@ app.layout = html.Div(
             width=8,
             className="offset-2 component-block",
             id="figure-block",
-            style={'display': 'none'}),
-    ]),
-    className="container-fluid content-fluid"
+            style={'display': 'none'})],
+        className="container-fluid content-fluid non_indent"),
+    dbc.Row([
+        dbc.Col([
+            html.B("Контакты:")
+        ],
+        className="offset-1 col-3")
+        ],
+        className="container-fluid content-fluid non_indent",
+        id="footer")
+]
 )
 
 
@@ -305,7 +338,7 @@ def parse_contents(contents, filename):
                Output('calc-block', 'style'),
                Output('body-error-upload', 'children')],
               [Input('upload-data', 'contents'),
-              Input('submit-NA', 'n_clicks')],
+               Input('submit-NA', 'n_clicks')],
               State('upload-data', 'filename'),
               State('table_data', 'data'),
               State('table_data', 'columns'),
