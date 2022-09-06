@@ -54,6 +54,14 @@ div.dash-graph {
     margin-bottom: 0.01rem
 }
 
+#title_dropdown_factor, #title_factor_unique {
+    margin-top: 15px
+}
+
+#title_dropdown_factor {
+    margin-top: 15px
+}
+
 .tooltip-inner {
     text-align: start;
     max-width: 500px !important
@@ -91,7 +99,7 @@ html, body {
 }
 
 #logo {
-    padding: 5px 0px
+    padding: 5px 10px
 }
 
 #footer {
