@@ -18,12 +18,18 @@ class CalcMedianSystem:
 
     def __init__(self):
         self.__table = []
-        self.__mode = 0  # 0 - simple median, 1 - independent samples, 2 - dependent samples
-        self.__column1 = ""
-        self.__column2 = ""
-        self.__title1 = ""
-        self.__title2 = ""
-        self.__results = []
+        self.__mode = "v1"  # v1 - simple median, v2 - independent samples, v3 - dependent samples
+        self.__columns = [None, None]
+        self.__titles = [None, None]
+        #self.__column1 = None
+        #self.__column2 = None
+        #self.__title1 = None
+        #self.__title2 = None
+        self.__results = [None, None]
+        self.__alpha = '90'
+        #self.__median1 = {'value': None, 'up': None, 'low': None}
+        #self.__median2 = {'value': None, 'up': None, 'low': None}
+        self.__result_diff = None
 
     def get_table(self):
         return self.__table
@@ -37,63 +43,96 @@ class CalcMedianSystem:
     def set_mode(self, mode):
         self.__mode = mode
 
+    def get_alpha(self):
+        return self.__alpha
+
+    def set_alpha(self, alpha):
+        self.__alpha = alpha
+
     def set_columns(self, title1, title2):
-        self.__column1 = self.__table[title1]
-        self.__column2 = self.__table[title2]
-        self.__title1 = title1
-        self.__title2 = title2
+        self.__columns[0] = self.__table[title1]
+        self.__titles[0] = title1
+        if title2 is not None:
+            self.__columns[1] = self.__table[title2]
+            self.__titles[1] = title2
 
-    def clear_result(self):
-        self.__results = []
+    def grouped_columns(self, keys, factor, column):
+        df = self.__table
+        self.__columns[0] = df[df[factor] == keys[0]][column]
+        self.__titles[0] = f"Группа 1 ({column})"
+        self.__columns[1] = df[df[factor] == keys[1]][column]
+        self.__titles[1] = f"Группа 2 ({column})"
 
-    def find_moda(self, data, column1, column2, variation, alpha):
-        if self.__mode == 0:
-            g1 = np.array(self.__column1, float)
+    def get_columns(self):
+        return self.__columns
+
+    def get_titles(self):
+        return self.__titles
+
+    def get_results(self):
+        return self.__results
+
+    def get_diff_result(self):
+        return self.__result_diff
+
+    def clear_columns(self):
+        self.__columns = [None, None]
+        self.__titles = [None, None]
+        self.__results = [None, None]
+        self.__result_diff = None
+
+
+    def find_moda(self, num_column=None):
+        if num_column is not None:
+            g1 = np.array(self.__columns[num_column], float)
             g1 = g1[np.logical_not(np.isnan(g1))]
-            up_index = int(np.round(1 + g1.size / 2 + (z_values[alpha] * np.sqrt(g1.size) / 2)))
-            low_index = int(np.round(g1.size / 2 - (z_values[alpha] * np.sqrt(g1.size) / 2)))
+            #Тут ошибка для выборок размером 3 и меньше
+            up_index = int(np.round(1 + g1.size / 2 + (z_values[self.__alpha] * np.sqrt(g1.size) / 2)))
+            low_index = int(np.round(g1.size / 2 - (z_values[self.__alpha] * np.sqrt(g1.size) / 2)))
             g1.sort()
-            low = g1[low_index]
-            up = g1[up_index]
-            median = np.median(g1)
-            self.__results.append(dict(column=self.__title1, data=g1, up=up, low=low, median=median))
-        elif self.__mode == 1:  # для независимых выборок
-            g1 = np.array(self.__column1, float)
-            g2 = np.array(self.__column2, float)
+            if (g1.size < up_index) or (low_index < 0):
+                return "error"
+            self.__results[num_column] = {'median': np.median(g1), 'up': g1[up_index-1], 'low': g1[low_index-1]}
+            result = self.__results[num_column]
+        elif self.__mode == 'v2':  # для независимых выборок
+            g1 = np.array(self.__columns[0], float)
+            g2 = np.array(self.__columns[1], float)
             g1 = g1[np.logical_not(np.isnan(g1))]
             g2 = g2[np.logical_not(np.isnan(g2))]
             row = np.zeros(g1.size * g2.size)  # заполнение 0 массива размером g1*g2
             k = (g1.size * g2.size) / 2 - (
-                        z_values[alpha] * math.sqrt(g1.size * g2.size * (g1.size + g2.size + 1) / 12))
+                        z_values[self.__alpha] * math.sqrt(g1.size * g2.size * (g1.size + g2.size + 1) / 12))
             count = 0
             for i in range(g2.size):
                 for j in range(g1.size):
                     row[count] = g1[j] - g2[i]
                     count += 1
             row[::-1].sort()
-            low = row[count - round(k)]
-            up = row[round(k) - 1]
-            median = np.median(row)
-            self.__results.append(dict(column=[self.__title1, self.__title2], data=row, up=up, low=low, median=median))
-        elif self.__mode == 2:
-            g = np.array(self.__column1, float)
+            if (count < round(k)) or ((count - round(k)) < 0):
+                return "error"
+            self.__result_diff = {'median': np.median(row), 'up': row[round(k) - 1], 'low': row[count - round(k)], 'data': row}
+            result = self.__result_diff
+            #self.__results.append(dict(column=[self.__title1, self.__title2], data=row, up=up, low=low, median=median))
+        elif self.__mode == 'v3':
+            g = np.array(self.__table.apply(lambda x: x[self.__titles[0]] - x[self.__titles[1]], axis=1), float)
+            size = sum(range(1, g.size + 1, 1))
             size = 0
             for i in range(g.size):
                 size += g.size - i
             row = np.zeros(size)
             k = (g.size * (g.size + 1)) / 4 - (
-                        z_values[alpha] * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
+                        z_values[self.__alpha] * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
             count = 0
             for i in range(g.size):
                 for j in range(i, g.size):
                     row[count] = (g[j] + g[i]) / 2
                     count += 1
             row[::-1].sort()
-            low = row[count - round(k)]
-            up = row[round(k) - 1]
-            median = np.median(row)
-            self.__results.append(dict(column=[self.__title1, self.__title2], data=row, up=up, low=low, median=median))
-        return self.__results
+            if (count < round(k)) or ((count - round(k)) < 0):
+                return "error"
+            self.__result_diff = {'median': np.median(row), 'up': row[round(k) - 1], 'low': row[count - round(k)], 'data': row}
+            result = self.__result_diff
+        return result
 
     def remove_na(self, mode):
         #mode: 0 - удалить все NA, 1 - замена средним, 2 - замена медианой, 3 - использование интерполяции
@@ -186,10 +225,17 @@ class CalcMedianSystem:
                 'yanchor': 'top'})
         return line_distr
 
-    def to_build_intervals(self, dicts):
+    def to_build_intervals(self):
         conf_intervals = go.Figure()
-        for idx, d in enumerate(dicts, start=1):
-            conf_intervals = self.to_build_interval(d['median'], d['low'], d['up'], d['column'], idx, conf_intervals)
+        median1 = self.__results[0]
+        median2 = self.__results[1]
+        conf_intervals = self.to_build_interval(median1['median'], median1['low'], median1['up'], self.__titles[0], 1,
+                                                conf_intervals)
+        conf_intervals = self.to_build_interval(median2['median'], median2['low'], median2['up'], self.__titles[1], 2,
+                                                conf_intervals)
+        median_diff = self.__result_diff
+        conf_intervals = self.to_build_interval(median_diff['median'], median_diff['low'], median_diff['up'],
+                                           self.__titles, 3, conf_intervals)
         conf_intervals.update_layout(
             title={
                 'text': 'Изображение доверительных интервалов',
@@ -198,7 +244,7 @@ class CalcMedianSystem:
                 'yanchor': 'top'})
         return conf_intervals
 
-    def to_build_interval(median, err_low, err_up, column, num, figure):
+    def to_build_interval(self, median, err_low, err_up, column, num, figure):
         tail = 0.2
         if not (isinstance(column, list)):
             name = "ДИ медианы " + column
