@@ -230,8 +230,8 @@ app.layout = html.Div([
             width=1),
         dbc.Col(
             children=[
-                html.H3("Вычисление медианы и доверительного интервала, разности медиан и её доверительного интервала"),
-                html.H5(["Выбор режима вычисления \xa0",
+                html.H3("Вычисление медианы и доверительного интервала (ДИ), разности медиан с ДИ"),
+                html.H5(["Выбор режима вычислений \xa0",
                          html.I(className="bi bi-info-circle",
                                 id="help-median",
                                 style={'font-size': '1.5rem'}),
@@ -257,9 +257,9 @@ app.layout = html.Div([
                              style={'font-size': '1.5rem'})
                          ]),
                 dcc.RadioItems(id='calc_variation',
-                               options=dict(v1='  Вычислить медианы и её доверительный интервал',
-                                            v2='  Вычисление для независимых выборок',
-                                            v3='  Вычислиние для зависимых выборок'),
+                               options=dict(v1='  Вычислить медиану и её ДИ',
+                                            v2='  Вычислить разницу медиан с ДИ для независимых выборок',
+                                            v3='  Вычислить разницу медиан с ДИ для зависимых выборок'),
                                value='v1'),
                 html.H5("Уровень значимости"),
                 dcc.RadioItems(id='alpha_variation',
@@ -271,20 +271,20 @@ app.layout = html.Div([
                                    '99,9': '\xa099.9%'},
                                value='90'),
                 html.Div([
-                    html.H5("Выбор данных для вычисления медианы"),
+                    html.H5("Выбор данных для вычислений"),
                     html.P(["Выберите переменную(-ые)"], id="title_dropdown_column"),
                     dcc.Dropdown([],
                                  id="select_column",
                                  multi=True,
                                  searchable=False,
-                                 placeholder=""),
+                                 placeholder="Выберите 1 колонку"),
                     html.P(["Выберите группирующую переменную"], id="title_dropdown_factor"),
                     dcc.Dropdown([],
                                      id="select_factor",
                                      multi=True,
                                      searchable=False,
-                                     placeholder=""),
-                    html.P(["Выберите вариационный ряд (2 значения)"], id="title_factor_unique"),
+                                     placeholder="Выберите 1 колонку"),
+                    html.P(["Выберите коды группирующей переменной"], id="title_factor_unique"),
                     dcc.Dropdown([],
                                      id="select_unique_factor",
                                      multi=True,
@@ -347,13 +347,13 @@ app.layout = html.Div([
             id="figure-block",
             style={'display': 'none'})],
         className="container-fluid content-fluid non_indent"),
-    dbc.Row([
+    html.Footer([
         dbc.Col([
             html.B("Контакты:")
         ],
             className="offset-1 col-3")
     ],
-        className="container-fluid content-fluid non_indent",
+        className="", #container-fluid content-fluid non_indent",
         id="footer")
 ]
 )
@@ -442,6 +442,7 @@ def update_output(columns, data):
 def update_output(column):
     df = medianSystem.get_table()
     unique_values = df[column].unique()
+    unique_values.sort()
     return [{'label': i, 'value': i} for i in unique_values]
 
 
@@ -451,7 +452,6 @@ def update_output(column):
     Input("select_column", "value")
 )
 def update_output(columns):
-    medianSystem.clear_columns()
     if not (isinstance(columns, list)):
         medianSystem.set_columns(columns, None)
     else:
@@ -484,11 +484,6 @@ def update_output(alpha):
               State("select_factor", "value"),
               State('select_column', 'value'))
 def update_output(n_clicks, keys, factor, slt_columns):
-    if len(keys) != 2:
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, \
-               dash.no_update, dash.no_update, dash.no_update, out_error("Количество группирующих значений не равно 2")
-    else:
-        medianSystem.grouped_columns(keys, factor, slt_columns)
     style_out = {'display': 'none'}
     style_v2_out = {'display': 'none'}
     df = medianSystem.get_table()
@@ -503,13 +498,19 @@ def update_output(n_clicks, keys, factor, slt_columns):
             return dash.no_update, style_out, dash.no_update, dash.no_update, \
                    dash.no_update, dash.no_update, style_v2_out, out_error("Неверный тип данных в столбце")
         medianSystem.find_moda(num_column=0)
-        result = build_result()
         style_out = {'display': 'block'}
         figure_m1 = graphs.to_build_distr(medianSystem.get_results()[0], mode_median, medianSystem.get_columns()[0], medianSystem.get_titles()[0])
         figure_m2 = graphs.return_nan_figure()
         figure_diff = graphs.return_nan_figure()
         figure_summ = graphs.return_nan_figure()
     elif mode_median == 'v2' or mode_median == 'v3':
+        if mode_median == 'v2':
+            if len(keys) != 2:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, \
+                    dash.no_update, dash.no_update, dash.no_update, out_error(
+                    "Количество группирующих значений не равно 2")
+            else:
+                medianSystem.grouped_columns(keys, factor, slt_columns)
         if (select_columns[1] is None) and n_clicks > 0:
             return dash.no_update, style_out, dash.no_update, dash.no_update, \
                    dash.no_update, dash.no_update, style_v2_out, out_error("Количество столбцов не равно 2")
@@ -545,8 +546,15 @@ def update_output(n_clicks, keys, factor, slt_columns):
                Output('title_dropdown_factor', 'style'),
                Output('select_unique_factor', 'style'),
                Output('title_factor_unique', 'style')],
+              State("select_column", "value"),
               Input('calc_variation', 'value'))
-def update_output(variation):
+def update_output(columns, variation):
+    medianSystem.clear_columns()
+    if columns is not None:
+        if not (isinstance(columns, list)):
+            medianSystem.set_columns(columns, None)
+        else:
+            medianSystem.set_columns(columns[0], columns[1])
     dict_props_columns, dict_props_factors = dict.fromkeys(['placeholder', 'multi']), dict.fromkeys(['placeholder', 'multi'])
     dict_props_columns['multi'], dict_props_factors['multi'] = False, False
     dict_props_columns['placeholder'],  dict_props_factors["placeholder"] = "Выберите 1 колонку", "Выберите 1 колонку"

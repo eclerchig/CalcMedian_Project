@@ -8,13 +8,13 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 
 
-def to_build_distr(dict_data, variation):
-    median = dict_data['median']
-    low = dict_data['low']
-    up = dict_data['up']
-    std = dict_data['data'].std()
-    mean = dict_data['data'].mean()
-    x = np.arange(dict_data['median'] - 3 * std, dict_data['median'] + 3 * std, 0.01)
+def to_build_distr(result, variation, data, titles):
+    median = result['median']
+    low = result['low']
+    up = result['up']
+    std = data.std()
+    mean = data.mean()
+    x = np.arange(result['median'] - 3 * std, result['median'] + 3 * std, 0.01)
     y = np.array(sps.norm.pdf(x, median, std))
     df = pd.DataFrame({'x': x, 'y': y})
     line_distr = px.line(df, x="x", y="y", color_discrete_sequence=['darkorange'])
@@ -62,12 +62,12 @@ def to_build_distr(dict_data, variation):
                          annotation_text="ДИ", annotation_position="bottom left",
                          fillcolor="green", opacity=0.25, line_width=0)
 
-    if variation == 'v1':
-        title = str(dict_data['column'])
-    else:
+    if variation != 'v1':
         title = 'Разница медиан \"' \
-                + str(dict_data['column'][0]) + '\" и \"' \
-                + str(dict_data['column'][1]) + '\"'
+                + titles[0] + '\" и \"' \
+                + titles[1] + '\"'
+    else:
+        title = titles
     line_distr.update_layout(
         title={
             'text': title,
@@ -77,10 +77,11 @@ def to_build_distr(dict_data, variation):
     return line_distr
 
 
-def to_build_intervals(dicts):
+def to_build_intervals(dicts_median, dict_diff_median):
     conf_intervals = go.Figure()
-    for idx, d in enumerate(dicts, start=1):
+    for idx, d in enumerate(dicts_median, start=1):
         conf_intervals = to_build_interval(d['median'], d['low'], d['up'], d['column'], idx, conf_intervals)
+    conf_intervals = to_build_interval(dict_diff_median['median'], dict_diff_median['low'], dict_diff_median['up'], self, idx, conf_intervals)
     conf_intervals.update_layout(
         title={
             'text': 'Изображение доверительных интервалов',

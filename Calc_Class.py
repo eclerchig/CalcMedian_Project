@@ -59,9 +59,9 @@ class CalcMedianSystem:
     def grouped_columns(self, keys, factor, column):
         df = self.__table
         self.__columns[0] = df[df[factor] == keys[0]][column]
-        self.__titles[0] = f"Группа 1 ({column})"
+        self.__titles[0] = f"{factor} {keys[0]} ({column})"
         self.__columns[1] = df[df[factor] == keys[1]][column]
-        self.__titles[1] = f"Группа 2 ({column})"
+        self.__titles[1] = f"{factor} {keys[1]} ({column})"
 
     def get_columns(self):
         return self.__columns
@@ -107,18 +107,17 @@ class CalcMedianSystem:
                 for j in range(g1.size):
                     row[count] = g1[j] - g2[i]
                     count += 1
-            row[::-1].sort()
-            if (count < round(k)) or ((count - round(k)) < 0):
+            row.sort()
+            if (count < round(k)) or ((count - round(k)) < 0) or (k < 0.5):
                 return "error"
-            self.__result_diff = {'median': np.median(row), 'up': row[round(k) - 1], 'low': row[count - round(k)], 'data': row}
+            self.__result_diff = {'median': np.median(row), 'up': row[count - round(k)], 'low': row[round(k) - 1], 'data': row}
             result = self.__result_diff
             #self.__results.append(dict(column=[self.__title1, self.__title2], data=row, up=up, low=low, median=median))
         elif self.__mode == 'v3':
             g = np.array(self.__table.apply(lambda x: x[self.__titles[0]] - x[self.__titles[1]], axis=1), float)
+            #g = np.array(self.__table[self.__titles[0]], float)
+            g = g[np.logical_not(np.isnan(g))]
             size = sum(range(1, g.size + 1, 1))
-            size = 0
-            for i in range(g.size):
-                size += g.size - i
             row = np.zeros(size)
             k = (g.size * (g.size + 1)) / 4 - (
                         z_values[self.__alpha] * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
@@ -127,10 +126,10 @@ class CalcMedianSystem:
                 for j in range(i, g.size):
                     row[count] = (g[j] + g[i]) / 2
                     count += 1
-            row[::-1].sort()
+            row.sort()
             if (count < round(k)) or ((count - round(k)) < 0):
                 return "error"
-            self.__result_diff = {'median': np.median(row), 'up': row[round(k) - 1], 'low': row[count - round(k)], 'data': row}
+            self.__result_diff = {'median': np.median(row), 'up': row[count - round(k)], 'low': row[round(k) - 1], 'data': row}
             result = self.__result_diff
         return result
 

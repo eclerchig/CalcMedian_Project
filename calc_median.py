@@ -36,11 +36,10 @@ def find_moda(data, column1, column2, variation, alpha):
         up = row[round(k) - 1]
         median = np.median(row)
         result = dict(column=[column1, column2], data=row, up=up, low=low, median=median)
-    elif variation == 'v3':
-        g = np.array(data[column1], float)
-        size = 0
-        for i in range(g.size):
-            size += g.size - i
+    elif variation == 'v3': #для зависимых
+        g = np.array(data.apply(lambda x: x[column1] - x[column2], axis=1), float)
+        #g = np.array(data[column1], float)
+        size = sum(range(1, g.size+1, 1))
         row = np.zeros(size)
         k = (g.size * (g.size + 1)) / 4 - (z_values[alpha] * math.sqrt(g.size * (g.size + 1) * (2 * g.size + 1) / 24))
         count = 0
