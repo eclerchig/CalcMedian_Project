@@ -4,17 +4,12 @@ import dash_bootstrap_components as dbc
 import dash
 from dash.exceptions import PreventUpdate
 
-import Calc_Class
-import calc_median
-import remove_NA
 import graphs
 
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
 from dash.dash_table.Format import Format, Scheme, Trim
 
-import pandas as pd
-import numpy as np
 from Calc_Class import *
 
 dbc_css = ("https://codepen.io/chriddyp/pen/bWLwgP.css")
@@ -153,7 +148,6 @@ app.layout = html.Div([
                         'textAlign': 'center',
                         'margin': '10px 0'
                     },
-                    # Allow multiple files to be uploaded
                     multiple=True
                 ),
                 html.Div(id='body-error-upload'),
@@ -353,7 +347,7 @@ app.layout = html.Div([
         ],
             className="offset-1 col-3")
     ],
-        className="", #container-fluid content-fluid non_indent",
+        className="",
         id="footer")
 ]
 )
@@ -402,9 +396,6 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns, vari
                 zip(list_of_contents, list_of_names)]
             style = {'display': 'block'}
     elif ctx_id == "submit-NA":
-        #cols = medianSystem.get_table().columns
-        #value = cols[0]
-        #children = [build_table(remove_NA.execute(data, columns, variation))]
         children = [build_table(medianSystem.remove_na(variation))]
         style = {'display': 'block'}
     elif ctx_id is None:
@@ -426,9 +417,7 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns, vari
               Input('table_data', 'columns'),
               State('table_data', 'data'))
 def update_output(columns, data):
-    #columns = list(pd.DataFrame.from_dict(columns)['name'])
     columns = medianSystem.get_table().columns
-    #df = pd.DataFrame.from_dict(data)
     df = medianSystem.get_table()
     nas = df.isna().sum()
     return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NaN значениями: {nas.max()}"
@@ -499,10 +488,10 @@ def update_output(n_clicks, keys, factor, slt_columns):
                    dash.no_update, dash.no_update, style_v2_out, out_error("Неверный тип данных в столбце")
         medianSystem.find_moda(num_column=0)
         style_out = {'display': 'block'}
-        figure_m1 = graphs.to_build_distr(medianSystem.get_results()[0], mode_median, medianSystem.get_columns()[0], medianSystem.get_titles()[0])
-        figure_m2 = graphs.return_nan_figure()
-        figure_diff = graphs.return_nan_figure()
-        figure_summ = graphs.return_nan_figure()
+        figure_m1 = medianSystem.to_build_distr('v1', medianSystem.get_results()[0], medianSystem.get_titles()[0])
+        figure_m2 = medianSystem.return_nan_figure()
+        figure_diff = medianSystem.return_nan_figure()
+        figure_summ = medianSystem.return_nan_figure()
     elif mode_median == 'v2' or mode_median == 'v3':
         if mode_median == 'v2':
             if len(keys) != 2:
@@ -530,9 +519,9 @@ def update_output(n_clicks, keys, factor, slt_columns):
                 "Недостаточное количество данных в группах")
         style_out = {'display': 'block'}
         style_v2_out = {'display': 'block'}
-        figure_m1 = graphs.to_build_distr(medianSystem.get_results()[0], 'v1', medianSystem.get_columns()[0], medianSystem.get_titles()[0])
-        figure_m2 = graphs.to_build_distr(medianSystem.get_results()[1], 'v1', medianSystem.get_columns()[1], medianSystem.get_titles()[1])
-        figure_diff = graphs.to_build_distr(medianSystem.get_diff_result(), mode_median, medianSystem.get_diff_result()['data'], medianSystem.get_titles())
+        figure_m1 = medianSystem.to_build_distr('v1', medianSystem.get_results()[0], medianSystem.get_titles()[0])
+        figure_m2 = medianSystem.to_build_distr('v1', medianSystem.get_results()[1], medianSystem.get_titles()[1])
+        figure_diff = medianSystem.to_build_distr('v2', medianSystem.get_diff_result(), medianSystem.get_titles())
         figure_summ = medianSystem.to_build_intervals()
     return build_result(), style_out, figure_m1, figure_m2, figure_diff, figure_summ, style_v2_out, ""
 

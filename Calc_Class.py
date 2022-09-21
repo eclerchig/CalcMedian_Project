@@ -6,7 +6,7 @@ import scipy.stats as sps
 import plotly.express as px
 import plotly.graph_objs as go
 import matplotlib.pyplot as plt
-
+from Interfaces import *
 z_values = {'90': 1.28,
             '95': 1.96,
             '98': 2.32,
@@ -21,15 +21,12 @@ class CalcMedianSystem:
         self.__mode = "v1"  # v1 - simple median, v2 - independent samples, v3 - dependent samples
         self.__columns = [None, None]
         self.__titles = [None, None]
-        #self.__column1 = None
-        #self.__column2 = None
-        #self.__title1 = None
-        #self.__title2 = None
         self.__results = [None, None]
         self.__alpha = '90'
-        #self.__median1 = {'value': None, 'up': None, 'low': None}
-        #self.__median2 = {'value': None, 'up': None, 'low': None}
         self.__result_diff = None
+        self.calculatorEngine = CalculationMedian()
+        self.removerNAEngine = RemoveNAEngine()
+        self.builderEngine = BuildMedianGraphEngine()
 
     def get_table(self):
         return self.__table
@@ -69,6 +66,12 @@ class CalcMedianSystem:
     def get_titles(self):
         return self.__titles
 
+    def set_results(self, dict_result, num_column):
+        self.__results[num_column] = dict_result
+
+    def set_diff_result(self, dict_result):
+        self.__result_diff = dict_result
+
     def get_results(self):
         return self.__results
 
@@ -81,18 +84,25 @@ class CalcMedianSystem:
         self.__results = [None, None]
         self.__result_diff = None
 
+    def set_calc_engine(self, engine: CalculationEngine):
+        self.calculatorEngine = engine
+
+    def set_removerNA_engine(self, engine: RemoveNAEngine):
+        self.removerNAEngine = engine
+
+    def set_builder_engine(self, engine: BuildGraphsEngine):
+        self.builderEngine = engine
 
     def find_moda(self, num_column=None):
         if num_column is not None:
             g1 = np.array(self.__columns[num_column], float)
             g1 = g1[np.logical_not(np.isnan(g1))]
-            #Тут ошибка для выборок размером 3 и меньше
             up_index = int(np.round(1 + g1.size / 2 + (z_values[self.__alpha] * np.sqrt(g1.size) / 2)))
             low_index = int(np.round(g1.size / 2 - (z_values[self.__alpha] * np.sqrt(g1.size) / 2)))
             g1.sort()
             if (g1.size < up_index) or (low_index < 0):
                 return "error"
-            self.__results[num_column] = {'median': np.median(g1), 'up': g1[up_index-1], 'low': g1[low_index-1]}
+            self.__results[num_column] = {'median': np.median(g1), 'up': g1[up_index-1], 'low': g1[low_index-1], 'data': g1}
             result = self.__results[num_column]
         elif self.__mode == 'v2':  # для независимых выборок
             g1 = np.array(self.__columns[0], float)
@@ -112,7 +122,6 @@ class CalcMedianSystem:
                 return "error"
             self.__result_diff = {'median': np.median(row), 'up': row[count - round(k)], 'low': row[round(k) - 1], 'data': row}
             result = self.__result_diff
-            #self.__results.append(dict(column=[self.__title1, self.__title2], data=row, up=up, low=low, median=median))
         elif self.__mode == 'v3':
             g = np.array(self.__table.apply(lambda x: x[self.__titles[0]] - x[self.__titles[1]], axis=1), float)
             #g = np.array(self.__table[self.__titles[0]], float)
@@ -135,8 +144,6 @@ class CalcMedianSystem:
 
     def remove_na(self, mode):
         #mode: 0 - удалить все NA, 1 - замена средним, 2 - замена медианой, 3 - использование интерполяции
-        #df = pd.DataFrame.from_dict(data)
-        #columns = list(pd.DataFrame.from_dict(columns)['name']) -----вынести за пределы класса
         df = self.__table
         if mode == 'v1':
             self.__table = self.__table.dropna()
@@ -155,8 +162,7 @@ class CalcMedianSystem:
 
     plt.style.use('seaborn-whitegrid')
 
-    def to_build_distr(self, variation):
-        data = self.__result
+    def to_build_distr(self, variation, data, titles):
         median = data['median']
         low = data['low']
         up = data['up']
@@ -210,12 +216,12 @@ class CalcMedianSystem:
                              annotation_text="ДИ", annotation_position="bottom left",
                              fillcolor="green", opacity=0.25, line_width=0)
 
-        if variation == 'v1':
-            title = str(data['column'])
-        else:
+        if variation != 'v1':
             title = 'Разница медиан \"' \
-                    + str(data['column'][0]) + '\" и \"' \
-                    + str(data['column'][1]) + '\"'
+                    + titles[0] + '\" и \"' \
+                    + titles[1] + '\"'
+        else:
+            title = titles
         line_distr.update_layout(
             title={
                 'text': title,
@@ -223,6 +229,9 @@ class CalcMedianSystem:
                 'xanchor': 'center',
                 'yanchor': 'top'})
         return line_distr
+
+    def return_nan_figure(self):
+        return go.Figure()
 
     def to_build_intervals(self):
         conf_intervals = go.Figure()
