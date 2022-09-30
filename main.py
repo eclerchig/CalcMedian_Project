@@ -4,8 +4,6 @@ import dash_bootstrap_components as dbc
 import dash
 from dash.exceptions import PreventUpdate
 
-import graphs
-
 from dash.dependencies import Input, Output, State
 from dash import dcc, html, dash_table
 from dash.dash_table.Format import Format, Scheme, Trim
@@ -24,6 +22,7 @@ df = pd.DataFrame()
 medianSystem = CalcMedianSystem()
 
 
+# вывод таблицы
 def build_table(data):
     return html.Div([
         dash_table.DataTable(
@@ -35,6 +34,7 @@ def build_table(data):
     ])
 
 
+# вывод текста ошибки
 def out_error(text):
     return html.P([
         html.B(["Ошибка: "]),
@@ -43,6 +43,7 @@ def out_error(text):
         style={'color': 'red'})
 
 
+# вывод текста результата
 def build_result():
     median1 = np.round(medianSystem.get_results()[0]['median'], 2)
     low1 = np.round(medianSystem.get_results()[0]['low'], 2)
@@ -64,8 +65,10 @@ def build_result():
             html.P([html.B("Верхняя граница: "), str(up2)]),
             html.P([html.B("Представление: "), str(median2) + f" {alpha}% ДИ [" + str(low2) + ";" + str(up2) + "]"]),
             html.Br(),
-            html.P([html.B("Разница медиан: "), str(np.round(medianSystem.get_diff_result()['median'], 2)) + f" {alpha}% ДИ [" +
-                    str(np.round(medianSystem.get_diff_result()['low'], 2)) + ";" + str(np.round(medianSystem.get_diff_result()['up'], 2)) + "]"])
+            html.P([html.B("Разница медиан: "),
+                    str(np.round(medianSystem.get_diff_result()['median'], 2)) + f" {alpha}% ДИ [" +
+                    str(np.round(medianSystem.get_diff_result()['low'], 2)) + ";" + str(
+                        np.round(medianSystem.get_diff_result()['up'], 2)) + "]"])
         ])
     else:
         return html.Div([
@@ -76,6 +79,8 @@ def build_result():
             html.P([html.B("Представление: "), str(median1) + f" {alpha}% ДИ [" + str(low1) + ";" + str(up1) + "]"])
         ])
 
+
+# -------LAYOUT--------
 
 app.layout = html.Div([
     dbc.Row([
@@ -274,16 +279,16 @@ app.layout = html.Div([
                                  placeholder="Выберите 1 колонку"),
                     html.P(["Выберите группирующую переменную"], id="title_dropdown_factor"),
                     dcc.Dropdown([],
-                                     id="select_factor",
-                                     multi=True,
-                                     searchable=False,
-                                     placeholder="Выберите 1 колонку"),
+                                 id="select_factor",
+                                 multi=True,
+                                 searchable=False,
+                                 placeholder="Выберите 1 колонку"),
                     html.P(["Выберите коды группирующей переменной"], id="title_factor_unique"),
                     dcc.Dropdown([],
-                                     id="select_unique_factor",
-                                     multi=True,
-                                     searchable=False,
-                                     placeholder="Выберите 2 значения"),
+                                 id="select_unique_factor",
+                                 multi=True,
+                                 searchable=False,
+                                 placeholder="Выберите 2 значения"),
                     html.Div(id='body-error-median'),
                     html.Div([
                         html.Button('Запустить вычисление', id='submit-calc', n_clicks=0)
@@ -332,7 +337,7 @@ app.layout = html.Div([
                                 className="col-12 card-graph",
                             )
                         ],
-                            id='v2_graph'),
+                            id='graphs_for_diff'),
                     ]
                 )
             ],
@@ -381,11 +386,9 @@ def parse_contents(contents, filename):
                Input('submit-NA', 'n_clicks')],
               State('upload-data', 'filename'),
               State('table_data', 'data'),
-              State('table_data', 'columns'),
-              State('imputation_variation', 'value'))
-def update_output(list_of_contents, n_clicks, list_of_names, data, columns, variation):
+              State('table_data', 'columns'))
+def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
     ctx_id = dash.callback_context.triggered_id
-    err = ""
     style = {'display': 'none'}
     if ctx_id == "upload-data":
         if list_of_contents is not None:
@@ -396,7 +399,7 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns, vari
                 zip(list_of_contents, list_of_names)]
             style = {'display': 'block'}
     elif ctx_id == "submit-NA":
-        children = [build_table(medianSystem.remove_na(variation))]
+        children = [build_table(medianSystem.remove_na())]
         style = {'display': 'block'}
     elif ctx_id is None:
         children = [build_table(medianSystem.get_table())]
@@ -423,7 +426,7 @@ def update_output(columns, data):
     return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NaN значениями: {nas.max()}"
 
 
-#----------обновление уникальных значений----------
+# ----------обновление уникальных значений----------
 @app.callback(
     Output("select_unique_factor", "options"),
     Input("select_factor", "value")
@@ -435,7 +438,7 @@ def update_output(column):
     return [{'label': i, 'value': i} for i in unique_values]
 
 
-#----------обновление выбранных столбцов---------
+# ----------обновление выбранных столбцов---------
 @app.callback(
     Output("select_column", "disabled"),
     Input("select_column", "value")
@@ -448,8 +451,7 @@ def update_output(columns):
     return PreventUpdate
 
 
-
-#-------обновление уровня значимости-------
+# -------обновление уровня значимости-------
 @app.callback(
     Output('alpha_variation', 'options'),
     Input('alpha_variation', 'value')
@@ -459,71 +461,73 @@ def update_output(alpha):
     raise PreventUpdate
 
 
-#-------вычисление медианы-------
+# -------обновление механизма удаления NA величин-------
+@app.callback(
+    Output('imputation_variation', 'disabled'),
+    Input('imputation_variation', 'value')
+)
+def update_output(variation):
+    medianSystem.set_removerNA_engine(variation)
+    raise PreventUpdate
+
+
+# -------вычисление медианы-------
 @app.callback([Output('output-median', 'children'),
                Output('figure-block', 'style'),
                Output('graph-median1', 'figure'),
                Output('graph-median2', 'figure'),
                Output('graph-diff', 'figure'),
                Output('graph-summ', 'figure'),
-               Output('v2_graph', 'style'),
+               Output('graphs_for_diff', 'style'),
                Output('body-error-median', 'children')],
-               Input('submit-calc', 'n_clicks'),
+              Input('submit-calc', 'n_clicks'),
               State("select_unique_factor", "value"),
               State("select_factor", "value"),
               State('select_column', 'value'))
 def update_output(n_clicks, keys, factor, slt_columns):
-    style_out = {'display': 'none'}
-    style_v2_out = {'display': 'none'}
+    style_graphs_for_diff = {'display': 'block'}
     df = medianSystem.get_table()
     mode_median = medianSystem.get_mode()
-    alpha = medianSystem.get_alpha()
     select_columns = medianSystem.get_titles()
     if mode_median == 'v1':
         if select_columns[0] is None and n_clicks > 0:
-            return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                   dash.no_update, dash.no_update, style_v2_out, out_error("Не выбран столбец")
+            return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+                   dash.no_update, dash.no_update, {'display': 'none'}, out_error("Не выбран столбец")
         if df.dtypes[select_columns[0]] not in [np.int64, np.float64]:
-            return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                   dash.no_update, dash.no_update, style_v2_out, out_error("Неверный тип данных в столбце")
-        medianSystem.find_moda(num_column=0)
-        style_out = {'display': 'block'}
-        figure_m1 = medianSystem.to_build_distr('v1', medianSystem.get_results()[0], medianSystem.get_titles()[0])
-        figure_m2 = medianSystem.return_nan_figure()
-        figure_diff = medianSystem.return_nan_figure()
-        figure_summ = medianSystem.return_nan_figure()
+            return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+                   dash.no_update, dash.no_update, {'display': 'none'}, out_error("Неверный тип данных в столбце")
+        style_graphs_for_diff = {'display': 'none'}
     elif mode_median == 'v2' or mode_median == 'v3':
         if mode_median == 'v2':
             if len(keys) != 2:
                 return dash.no_update, dash.no_update, dash.no_update, dash.no_update, \
-                    dash.no_update, dash.no_update, dash.no_update, out_error(
-                    "Количество группирующих значений не равно 2")
+                       dash.no_update, dash.no_update, dash.no_update, \
+                       out_error("Количество группирующих значений не равно 2")
             else:
                 medianSystem.grouped_columns(keys, factor, slt_columns)
         if (select_columns[1] is None) and n_clicks > 0:
-            return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                   dash.no_update, dash.no_update, style_v2_out, out_error("Количество столбцов не равно 2")
+            return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+                   dash.no_update, dash.no_update, {'display': 'none'}, out_error("Количество столбцов не равно 2")
         if mode_median == 'v3':
             for col in slt_columns:
                 if df.dtypes[col] not in [np.int64, np.float64]:
-                    return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                    dash.no_update, dash.no_update, style_v2_out, out_error(f"Неверный тип данных в столбце \"{col}\"")
+                    return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+                           dash.no_update, dash.no_update, {'display': 'none'}, out_error(
+                        f"Неверный тип данных в столбце \"{col}\"")
         else:
             if df.dtypes[slt_columns] not in [np.int64, np.float64]:
-                return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                       dash.no_update, dash.no_update, style_v2_out, out_error(f"Неверный тип данных в столбце \"{slt_columns}\"")
-        output = [medianSystem.find_moda(num_column=0), medianSystem.find_moda(num_column=1), medianSystem.find_moda()]
-        if "error" in output:
-            return dash.no_update, style_out, dash.no_update, dash.no_update, \
-                   dash.no_update, dash.no_update, style_v2_out, out_error(
-                "Недостаточное количество данных в группах")
-        style_out = {'display': 'block'}
-        style_v2_out = {'display': 'block'}
-        figure_m1 = medianSystem.to_build_distr('v1', medianSystem.get_results()[0], medianSystem.get_titles()[0])
-        figure_m2 = medianSystem.to_build_distr('v1', medianSystem.get_results()[1], medianSystem.get_titles()[1])
-        figure_diff = medianSystem.to_build_distr('v2', medianSystem.get_diff_result(), medianSystem.get_titles())
-        figure_summ = medianSystem.to_build_intervals()
-    return build_result(), style_out, figure_m1, figure_m2, figure_diff, figure_summ, style_v2_out, ""
+                return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+                       dash.no_update, dash.no_update, {'display': 'none'}, out_error(
+                    f"Неверный тип данных в столбце \"{slt_columns}\"")
+    output = medianSystem.find_median()
+    if "error" in output:
+        return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
+               dash.no_update, dash.no_update, {'display': 'none'}, \
+               out_error("Недостаточное количество данных в группах")
+    graphs = medianSystem.output_graphs()
+    return build_result(), {'display': 'block'}, \
+           graphs['figure_m1'], graphs['figure_m2'], graphs['figure_diff'], graphs['conf_intervals'], \
+           style_graphs_for_diff, ""
 
 
 # -------изменение настроек вычисления-------
@@ -544,9 +548,10 @@ def update_output(columns, variation):
             medianSystem.set_columns(columns, None)
         else:
             medianSystem.set_columns(columns[0], columns[1])
-    dict_props_columns, dict_props_factors = dict.fromkeys(['placeholder', 'multi']), dict.fromkeys(['placeholder', 'multi'])
+    dict_props_columns, dict_props_factors = dict.fromkeys(['placeholder', 'multi']), dict.fromkeys(
+        ['placeholder', 'multi'])
     dict_props_columns['multi'], dict_props_factors['multi'] = False, False
-    dict_props_columns['placeholder'],  dict_props_factors["placeholder"] = "Выберите 1 колонку", "Выберите 1 колонку"
+    dict_props_columns['placeholder'], dict_props_factors["placeholder"] = "Выберите 1 колонку", "Выберите 1 колонку"
     visibility_factors = 'none'
     medianSystem.set_mode(variation)
     if variation == 'v2':
@@ -573,5 +578,5 @@ def update_output(n_clicks):
 
 server = app.server
 if __name__ == '__main__':
-    app.run_server(debug=True)
-#host="0.0.0.0"
+    app.run_server(debug=False)
+# host="0.0.0.0"

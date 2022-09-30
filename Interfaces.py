@@ -7,6 +7,8 @@ import scipy.stats as sps
 import pandas as pd
 import math
 
+import calc_median
+
 
 class CalculationEngine(ABC):
     Z_VALUES = {'90': 1.28,
@@ -21,12 +23,11 @@ class CalculationEngine(ABC):
 
 
 class CalculationMedian(CalculationEngine):
-    def find_median(self, median_class,  num_column=None):
+    def find_median(self, median_class, num_column=0):
         alpha = median_class.get_alpha()
-        data = median_class.get_columns[num_column]
+        data = median_class.get_columns()[num_column]
         g1 = np.array(data, float)
         g1 = g1[np.logical_not(np.isnan(g1))]
-        # Тут ошибка для выборок размером 3 и меньше
         up_index = int(np.round(1 + g1.size / 2 + (self.Z_VALUES[alpha] * np.sqrt(g1.size) / 2)))
         low_index = int(np.round(g1.size / 2 - (self.Z_VALUES[alpha] * np.sqrt(g1.size) / 2)))
         g1.sort()
@@ -37,9 +38,14 @@ class CalculationMedian(CalculationEngine):
                                   'low': g1[low_index - 1],
                                   'data': g1},
                                  num_column)
+        return median_class.get_results()
 
 
 class CalculationDependentMedian(CalculationEngine):
+
+    def __init__(self):
+        self.__calc_median = CalculationMedian()
+
     def find_median(self, median_class, num_column=None):
         titles = median_class.get_titles()
         table = median_class.get_table()
@@ -62,9 +68,14 @@ class CalculationDependentMedian(CalculationEngine):
                                       'up': row[count - round(k)],
                                       'low': row[round(k) - 1],
                                       'data': row})
+        return [calc_median.find_moda(median_class, 0), calc_median.find_moda(median_class, 1),
+                median_class.get_diff_result()]
 
 
 class CalculationIndependentMedian(CalculationEngine):
+    def __init__(self):
+        self.__calc_median = CalculationMedian()
+
     def find_median(self, median_class, num_column=None):
         columns = median_class.get_columns()
         alpha = median_class.get_alpha()
@@ -88,6 +99,8 @@ class CalculationIndependentMedian(CalculationEngine):
                                       'low': row[round(k) - 1],
 
                                       'data': row})
+        return [self.__calc_median.find_median(median_class, 0), self.__calc_median.find_median(median_class, 1),
+                median_class.get_diff_result()]
 
 
 class RemoveNAEngine(ABC):
@@ -137,23 +150,127 @@ class BuildGraphsEngine(ABC):
     def build_graphs(self, median_class) -> list:
         pass
 
+    @staticmethod
+    def to_build_distr(data, title):
+        median = data['median']
+        low = data['low']
+        up = data['up']
+        std = data['data'].std()
+        mean = data['data'].mean()
+        x = np.arange(mean - 3 * std, mean + 3 * std, 0.01)
+        y = np.array(sps.norm.pdf(x, mean, std))
+        df = pd.DataFrame({'x': x, 'y': y})
+        line_distr = px.line(df, x="x", y="y", color_discrete_sequence=['darkorange'])
+        line_distr.add_traces([
+            go.Scatter(
+                x=[low, low],
+                y=[0, sps.norm.pdf(low, mean, std)],
+                line={
+                    'color': 'rgb(50, 171, 96)',
+                    'width': 2,
+                },
+                name='Нижняя граница ДИ'
+            ),
+            go.Scatter(
+                x=[up, up],
+                y=[0, sps.norm.pdf(up, mean, std)],
+                line={
+                    'color': 'rgb(50, 171, 96)',
+                    'width': 2,
+                },
+                name='Верхняя граница ДИ'
+            ),
+            go.Scatter(
+                x=[median, median],
+                y=[0, sps.norm.pdf(median, mean, std)],
+                line={
+                    'color': 'rgb(0, 0, 0)',
+                    'width': 3,
+                    'dash': 'solid'
+                },
+                name='Медиана'
+            ),
+            go.Scatter(
+                x=[mean, mean],
+                y=[0, sps.norm.pdf(mean, mean, std)],
+                line={
+                    'color': 'rgb(255, 43, 43)',
+                    'width': 2,
+                    'dash': 'dash'
+                },
+                name='Среднее'
+            ),
+        ])
+        line_distr.add_vrect(x0=low, x1=up,
+                             annotation_text="ДИ", annotation_position="bottom left",
+                             fillcolor="green", opacity=0.25, line_width=0)
+
+        line_distr.update_layout(
+            title={
+                'text': title,
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'})
+        return line_distr
+
+    @staticmethod
+    def to_build_intervals(median1, median2, median_diff, median_class):
+
+        conf_intervals = go.Figure()
+        conf_intervals = BuildGraphsEngine.to_build_interval(median1['median'], median1['low'], median1['up'],
+                                                             median_class.get_titles()[0], 1, conf_intervals)
+        conf_intervals = BuildGraphsEngine.to_build_interval(median2['median'], median2['low'], median2['up'],
+                                                             median_class.get_titles()[1], 2, conf_intervals)
+        conf_intervals = BuildGraphsEngine.to_build_interval(median_diff['median'], median_diff['low'], median_diff['up'],
+                                                             median_class.get_titles(), 3, conf_intervals)
+        conf_intervals.update_layout(
+            title={
+                'text': 'Изображение доверительных интервалов',
+                'x': 0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'})
+        return conf_intervals
+
+    @staticmethod
+    def to_build_interval(median, err_low, err_up, column, num, figure):
+        tail = 0.2
+        if not (isinstance(column, list)):
+            name = "ДИ медианы " + column
+        else:
+            name = "ДИ разницы медиан"
+        x = np.array([median, err_up, err_up, err_up, err_up, err_low, err_low, err_low])
+        y = np.array([num, num, num + 0.5 * tail, num - 0.5 * tail, num, num, num + 0.5 * tail, num - 0.5 * tail])
+        figure.add_trace(go.Scatter(x=x, y=y, name=name, marker=None))
+        return figure
+
+    @staticmethod
+    def return_nan_figure():
+        return go.Figure()
+
 
 class BuildMedianGraphEngine(BuildGraphsEngine):
 
     def build_graphs(self, median_class):
-        figure_m1 = median_class.to_build_distr(median_class.get_results()[0], median_class.get_titles()[0])
-        figure_m2 = median_class.return_nan_figure()
-        figure_diff = median_class.return_nan_figure()
-        figure_summ = median_class.return_nan_figure()
-        return [figure_m1, figure_m2, figure_diff, figure_summ]
+        figure_m1 = BuildGraphsEngine.to_build_distr(median_class.get_results()[0], median_class.get_titles()[0])
+        figure_m2 = BuildGraphsEngine.return_nan_figure()
+        figure_diff = BuildGraphsEngine.return_nan_figure()
+        conf_intervals = BuildGraphsEngine.return_nan_figure()
+        return {'figure_m1': figure_m1,
+                'figure_m2': figure_m2,
+                'figure_diff': figure_diff,
+                'conf_intervals': conf_intervals}
 
 
 class BuildDiffMedianGraphEngine(BuildGraphsEngine):
     def build_graphs(self, median_class):
         title1 = median_class.get_titles()[0]
         title2 = median_class.get_titles()[1]
-        figure_m1 = median_class.to_build_distr(median_class.get_results()[0], title1)
-        figure_m2 = median_class.to_build_distr(median_class.get_results()[1], title2)
-        figure_diff = median_class.to_build_distr(median_class.get_diff_result(), 'Разница медиан \"' + title1 + '\" и \"' + title2 + '\"')
-        figure_summ = median_class.to_build_intervals()
-        return [figure_m1, figure_m2, figure_diff, figure_summ]
+        figure_m1 = BuildGraphsEngine.to_build_distr(median_class.get_results()[0], title1)
+        figure_m2 = BuildGraphsEngine.to_build_distr(median_class.get_results()[1], title2)
+        figure_diff = BuildGraphsEngine.to_build_distr(median_class.get_diff_result(), 'Разница медиан \"' + title1 + '\" и \"' + title2 + '\"')
+        conf_intervals = BuildGraphsEngine.to_build_intervals(median_class.get_results()[0], median_class.get_results()[1],
+                                                              median_class.get_diff_result(), median_class)
+        return {'figure_m1': figure_m1,
+                'figure_m2': figure_m2,
+                'figure_diff': figure_diff,
+                'conf_intervals': conf_intervals}
