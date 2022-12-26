@@ -68,7 +68,7 @@ class CalculationDependentMedian(CalculationEngine):
                                       'up': row[count - round(k)],
                                       'low': row[round(k) - 1],
                                       'data': row})
-        return [calc_median.find_moda(median_class, 0), calc_median.find_moda(median_class, 1),
+        return [self.__calc_median.find_median(median_class, 0), self.__calc_median.find_median(median_class, 1),
                 median_class.get_diff_result()]
 
 
