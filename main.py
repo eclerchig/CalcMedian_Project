@@ -2,6 +2,7 @@ import base64
 import io
 import dash_bootstrap_components as dbc
 import dash
+import pandas as pd
 from dash.exceptions import PreventUpdate
 
 from dash.dependencies import Input, Output, State
@@ -29,9 +30,13 @@ def build_table(data):
             data=data.to_dict('records'),
             columns=[{'name': i, 'id': i, 'type': 'numeric',
                       'format': Format(precision=2, scheme=Scheme.fixed, trim=Trim.yes)} for i in data.columns],
+
             id='table_data'
         )
     ])
+
+
+
 
 
 # вывод текста ошибки
@@ -80,282 +85,296 @@ def build_result():
         ])
 
 
-# -------LAYOUT--------
-
-app.layout = html.Div([
-    dbc.Row([
-        dbc.Col([
-            dbc.Row([
-                dbc.Col([
-                    html.A([
-                        html.Img(
-                            src="assets/img/logo.png",
-                            height=100)
-                    ],
-                        href="https://health-family.ru/ru/",
-                        className="logo-info"
-                    )],
-                    id="logo",
-                    width=3),
-                dbc.Col([
-                    html.Span(["Федеральное государственное бюджетное научное учреждение"],
-                              className="uppercase")
-                ],
-                    width=6),
-                dbc.Col([],
-                        width=3),
-            ]),
-            dbc.Row([
-                html.Span([
-                    html.P(["ДОВЕРИТЕЛЬНЫЙ ИНТЕРВАЛ ДЛЯ МЕДИАН И ИХ РАЗНОСТЕЙ:"]),
-                    html.P(["АВТОМАТИЗАЦИЯ РАСЧЕТА И ВИЗУАЛИЗАЦИЯ"])
-                ],
-                    id="title",
-                    className="uppercase")],
-                align="center"
-            )
-        ],
-            id="navbar",
-            className="col-12"
-        ),
-        dbc.Col([
+def serve_layout():
+    df = pd.DataFrame()
+    return html.Div([
+        dbc.Row([
             dbc.Col([
-                html.H3(children=[
-                    "Загрузка данных \xa0",
-                    html.I(className="bi bi-info-circle",
-                           id="help-upload",
-                           style={'font-size': '2rem'}),
-                    dbc.Tooltip(
-                        ["Можно загрузить файлы следующих форматов:", html.Br(),
-                         ".CSV - при использовании в качестве разделителя столбцов запятой, "
-                         "в качестве десятичного разделителя - точки;",
-                         html.Br(), ".XLSX, .XLS", html.Br(),
-                         "Можно прикрепить только один файл размером не больше 2 МБ!"
-                         ],
-                        target="help-upload",
-                        placement='bottom',
-                        delay={'show': 0,
-                               'hide': 50},
-                        style={'font-size': '1.5rem'})
+                dbc.Row([
+                    dbc.Col([
+                        html.A([
+                            html.Img(
+                                src="assets/img/logo.png",
+                                height=100)
+                        ],
+                            href="https://health-family.ru/ru/",
+                            className="logo-info"
+                        )],
+                        id="logo",
+                        width=3),
+                    dbc.Col([
+                        html.Span(["Федеральное государственное бюджетное научное учреждение"],
+                                  className="uppercase")
+                    ],
+                        width=6),
+                    dbc.Col([],
+                            width=3),
                 ]),
-                dcc.Upload(
-                    id='upload-data',
-                    children=html.Div([
-                        'Перетащите или ',
-                        html.A('Выберите файл')
-                    ]),
-                    style={
-                        'height': '60px',
-                        'lineHeight': '60px',
-                        'borderWidth': '1px',
-                        'borderStyle': 'dashed',
-                        'borderRadius': '5px',
-                        'textAlign': 'center',
-                        'margin': '10px 0'
-                    },
-                    multiple=True
-                ),
-                html.Div(id='body-error-upload'),
-                html.Div([
-                    html.Button("Пример файла для загрузки",
-                                id="btn_ex",
-                                style={"width": "auto"}),
-                    dcc.Download(id="download-example")],
-                    style={"text-align": "center"}
-                ),
-                html.P([
-                    "Действия по обработке пропущенных значений \xa0",
-                    html.I(className="bi bi-info-circle",
-                           id="help-imputn",
-                           style={'font-size': '1.5rem'}),
-                    dbc.Tooltip(
-                        ["Описание каждого действия:", html.Br(),
-                         html.B("Убрать все записи с NA значениями:"),
-                         " удалить строки при наличии хотя бы одного пропущенного значения;", html.Br(),
-                         html.B("Использовать среднее для замены NA значений:"),
-                         " каждое пропущенное значение заменяется средним значением для каждого столбца;", html.Br(),
-                         html.B("Использовать медиану для замены NA значений:"),
-                         " каждое пропущенное значение заменяется медианой для каждого столбца;", html.Br(),
-                         html.B("Использовать интерполяцию:"),
-                         " каждое пропущенное значение заменяется результатом линейной интерполяции для каждого столбца"
-                         ],
-                        target="help-imputn",
-                        placement='bottom',
-                        delay={'show': 0,
-                               'hide': 50},
-                        style={'font-size': '1.5rem'})
-                ],
-                    className="p-title"),
-                dcc.RadioItems(id='imputation_variation',
-                               options=dict(v1='  Убрать все записи с NA значениями',
-                                            v2='  Использовать среднее для замены NA значений',
-                                            v3='  Использовать медиану для замены NA значений',
-                                            v4='  Использовать интерполяцию'),
-                               value='v1'),
-                html.Div([
-                    html.Button('Преобразовать пустые строки', id='submit-NA', n_clicks=0)
-                ],
-                    className="div_btn mt-3"),
-            ],
-                width=12,
-                className="component-block"
-            ),
-        ],
-            width=4,
-            className="offset-1"
-        ),
-        dbc.Col(
-            children=[
-                html.H3("Таблица данных"),
-                html.Div(
-                    children=[build_table(df)],
-                    id='output-data-upload',
-                ),
-                html.Div(
-                    children=[
-                        html.H6(["Количество записей:"], id="num_row")
-                    ]
-                ),
-                html.Div(
-                    children=[
-                        html.H6(["Количество записей с NaN значениями:"], id="num_na")
-                    ]
+                dbc.Row([
+                    html.Span([
+                        html.P(["ДОВЕРИТЕЛЬНЫЙ ИНТЕРВАЛ ДЛЯ МЕДИАН И ИХ РАЗНОСТЕЙ:"]),
+                        html.P(["АВТОМАТИЗАЦИЯ РАСЧЕТА И ВИЗУАЛИЗАЦИЯ"])
+                    ],
+                        id="title",
+                        className="uppercase")],
+                    align="center"
                 )
             ],
-            width=5,
-            className="offset-1 component-block"),
-        dbc.Col(
-            [],
-            width=1),
-        dbc.Col(
-            children=[
-                html.H3("Вычисление медианы и доверительного интервала (ДИ), разности медиан с ДИ"),
-                html.H5(["Выбор режима вычислений \xa0",
-                         html.I(className="bi bi-info-circle",
-                                id="help-median",
-                                style={'font-size': '1.5rem'}),
-                         dbc.Tooltip(
-                             ["Описание каждого режима:", html.Br(),
-                              html.B("Вычисление доверительный интервал для медианы:"),
-                              " вычислить доверительный интервал медианы для одной выборки "
-                              "(необходимо  выбрать 1 столбец с данными выборки);", html.Br(),
-                              html.B("Вычисление доверительного интервала разницы медиан для независимых выборок:"),
-                              " процедура эксперимента и полученные результаты измерения некоторого свойства у испытуемых"
-                              "одной выборки не оказывают влияния на особенности протекания этого же эксперимента и на результаты "
-                              "измерения этого же свойства у испытуемых (респондентов) другой выборки "
-                              "(необходимо выбрать 2 столбца из таблицы, определяющих группы испытуемых);", html.Br(),
-                              html.B("Вычисление доверительного интервала разницы медиан для зависимых выборок:"),
-                              " процедура эксперимента и полученные результаты измерения некоторого свойства, "
-                              "проведенные на одной выборке, оказывают влияние на другую "
-                              "(необходимо выбрать 2 столбца из таблицы, определяющих результаты одной и той же группы испытуемых в разные промежутки времени)"
-                              ],
-                             target="help-median",
-                             placement='top',
-                             delay={'show': 0,
-                                    'hide': 50},
-                             style={'font-size': '1.5rem'})
-                         ]),
-                dcc.RadioItems(id='calc_variation',
-                               options=dict(v1='  Вычислить медиану и её ДИ',
-                                            v2='  Вычислить разницу медиан с ДИ для независимых выборок',
-                                            v3='  Вычислить разницу медиан с ДИ для зависимых выборок'),
-                               value='v1'),
-                html.H5("Уровень значимости"),
-                dcc.RadioItems(id='alpha_variation',
-                               options={
-                                   '90': '\xa090%',
-                                   '95': '\xa095%',
-                                   '98': '\xa098%',
-                                   '99': '\xa099%',
-                                   '99,9': '\xa099.9%'},
-                               value='90'),
-                html.Div([
-                    html.H5("Выбор данных для вычислений"),
-                    html.P(["Выберите переменную(-ые)"], id="title_dropdown_column"),
-                    dcc.Dropdown([],
-                                 id="select_column",
-                                 multi=True,
-                                 searchable=False,
-                                 placeholder="Выберите 1 колонку"),
-                    html.P(["Выберите группирующую переменную"], id="title_dropdown_factor"),
-                    dcc.Dropdown([],
-                                 id="select_factor",
-                                 multi=True,
-                                 searchable=False,
-                                 placeholder="Выберите 1 колонку"),
-                    html.P(["Выберите коды группирующей переменной"], id="title_factor_unique"),
-                    dcc.Dropdown([],
-                                 id="select_unique_factor",
-                                 multi=True,
-                                 searchable=False,
-                                 placeholder="Выберите 2 значения"),
-                    html.Div(id='body-error-median'),
+                id="navbar",
+                className="col-12"
+            ),
+            dbc.Col([
+                dbc.Col([
+                    html.H3(children=[
+                        "Загрузка данных \xa0",
+                        html.I(className="bi bi-info-circle",
+                               id="help-upload",
+                               style={'font-size': '2rem'}),
+                        dbc.Tooltip(
+                            ["Можно загрузить файлы следующих форматов:", html.Br(),
+                             ".CSV - при использовании в качестве разделителя столбцов запятой, "
+                             "в качестве десятичного разделителя - точки;",
+                             html.Br(), ".XLSX, .XLS", html.Br(),
+                             "Можно прикрепить только один файл размером не больше 2 МБ!"
+                             ],
+                            target="help-upload",
+                            placement='bottom',
+                            delay={'show': 0,
+                                   'hide': 50},
+                            style={'font-size': '1.5rem'})
+                    ]),
+                    dcc.Upload(
+                        id='upload-data',
+                        children=html.Div([
+                            'Перетащите или ',
+                            html.A('Выберите файл')
+                        ]),
+                        style={
+                            'height': '60px',
+                            'lineHeight': '60px',
+                            'borderWidth': '1px',
+                            'borderStyle': 'dashed',
+                            'borderRadius': '5px',
+                            'textAlign': 'center',
+                            'margin': '10px 0'
+                        },
+                        multiple=True
+                    ),
+                    html.Div(id='body-error-upload'),
                     html.Div([
-                        html.Button('Запустить вычисление', id='submit-calc', n_clicks=0)
+                        html.Button("Пример файла для загрузки",
+                                    id="btn_ex",
+                                    style={"width": "auto"}),
+                        dcc.Download(id="download-example")],
+                        style={"text-align": "center"}
+                    ),
+                    html.P([
+                        "Действия по обработке пропущенных значений \xa0",
+                        html.I(className="bi bi-info-circle",
+                               id="help-imputn",
+                               style={'font-size': '1.5rem'}),
+                        dbc.Tooltip(
+                            ["Описание действий:", html.Br(),
+                             html.B("Убрать все записи с пропущенными (NA) значениями:"),
+                             " удалить строки при наличии хотя бы одного NA значения;", html.Br(),
+                             html.B("Использовать среднее для замены пропущенных (NA) значений:"),
+                             " каждое NA значение заменяется средним арифметическим для каждого столбца;",
+                             html.Br(),
+                             html.B("Использовать медиану для замены пропущенных (NA) значений:"),
+                             " каждое NA значение заменяется медианой для каждого столбца;", html.Br(),
+                             html.B("Использовать  линейную интерполяцию:"),
+                             " каждое пропущенное (NA) значение заменяется величиной, "
+                             "которая является результатом линейной интерполяции "
+                             "(построение сплайна нулевого порядка между точками данных) для каждого столбца"
+                             ],
+                            target="help-imputn",
+                            placement='bottom',
+                            delay={'show': 0,
+                                   'hide': 50},
+                            style={'font-size': '1.5rem'})
+                    ],
+                        className="p-title"),
+                    dcc.RadioItems(id='imputation_variation',
+                                   options=dict(v1='  Убрать все записи с пропущенными значениями',
+                                                v2='  Использовать среднее арифметическое для замены пропущенных значений',
+                                                v3='  Использовать медиану для замены пропущенных значений',
+                                                v4='  Использовать линейную интерполяцию'),
+                                   value='v1'),
+                    html.Div([
+                        html.Button('Преобразовать пустые строки', id='submit-NA', n_clicks=0)
                     ],
                         className="div_btn mt-3"),
-                    html.Div(id='output-median', children=[])
-                ]),
+                ],
+                    width=12,
+                    className="component-block"
+                ),
             ],
-            width=6,
-            className="offset-3 component-block",
-            id="calc-block",
-            style={'display': 'none'}),
-        dbc.Col(
-            children=[
-                html.H3("Полученные графики",
-                        style={'text-align': 'center'}),
-                dbc.Row(
-                    children=[
-                        html.Div(
-                            children=dcc.Graph(
-                                id="graph-median1",
-                                responsive=False,
-                            ),
-                            className="col-12 card-graph",
-                        ),
+                width=4,
+                className="offset-1"
+            ),
+            dbc.Col(
+                children=[
+                    html.H3("Таблица данных"),
+                    html.Div(
+                        children=[build_table(df)],
+                        id='output-data-upload',
+                    ),
+                    html.Div(
+                        children=[
+                            html.H6(["Количество записей:"], id="num_row")
+                        ]
+                    ),
+                    html.Div(
+                        children=[
+                            html.H6(["Количество записей с NA значениями:"], id="num_na")
+                        ]
+                    )
+                ],
+                width=5,
+                className="offset-1 component-block"),
+            dbc.Col(
+                [],
+                width=1),
+            dbc.Col(
+                children=[
+                    html.H3("Вычисление медианы и доверительного интервала (ДИ), разности медиан с ДИ"),
+                    html.H5(["Выбор режима вычислений \xa0",
+                             html.I(className="bi bi-info-circle",
+                                    id="help-median",
+                                    style={'font-size': '1.5rem'}),
+                             dbc.Tooltip(
+                                 ["Описание режимов:", html.Br(),
+                                  html.B("Вычисление доверительного интервала для медианы: "),
+                                  " вычисляется медиана и ДИ для одной выборки "
+                                  " (необходимо  выбрать 1 столбец с данными выборки);", html.Br(),
+                                  html.B("Вычисление доверительного интервала разницы медиан для независимых выборок: "),
+                                  " вычисляются медианы и ДИ для 2 независимых выборок, разница медиан этих выборок и ее ДИ "
+                                  " (необходимо выбрать 2 столбца из таблицы, определяющих группы данных для независимых выборок);",
+                                  html.Br(),
+                                  html.B("Вычисление доверительного интервала разницы медиан для зависимых выборок: "),
+                                  " вычисляются медианы и ДИ для 2 зависимых выборок, разница медиан этих выборок и ее ДИ "
+                                  " (необходимо выбрать 2 столбца из таблицы, определяющих группы данных для зависимых выборок);",
+                                  ],
+                                 target="help-median",
+                                 placement='top',
+                                 delay={'show': 0,
+                                        'hide': 50},
+                                 style={'font-size': '1.5rem'})
+                             ]),
+                    dcc.RadioItems(id='calc_variation',
+                                   options=dict(v1='  Вычислить медиану и её ДИ',
+                                                v2='  Вычислить разницу медиан с ДИ для независимых выборок',
+                                                v3='  Вычислить разницу медиан с ДИ для зависимых выборок'),
+                                   value='v1'),
+                    html.H5("Уровень значимости"),
+                    dcc.RadioItems(id='alpha_variation',
+                                   options={
+                                       '90': '\xa090%',
+                                       '95': '\xa095%',
+                                       '98': '\xa098%',
+                                       '99': '\xa099%',
+                                       '99,9': '\xa099.9%'},
+                                   value='90'),
+                    html.Div([
+                        html.H5("Выбор данных для вычислений"),
+                        html.P(["Выберите переменную(-ые)"], id="title_dropdown_column"),
+                        dcc.Dropdown([],
+                                     id="select_column",
+                                     multi=True,
+                                     searchable=False,
+                                     placeholder="Выберите 1 колонку"),
+                        html.P(["Выберите группирующую переменную"], id="title_dropdown_factor"),
+                        dcc.Dropdown([],
+                                     id="select_factor",
+                                     multi=True,
+                                     searchable=False,
+                                     placeholder="Выберите 1 колонку"),
+                        html.P(["Выберите коды группирующей переменной"], id="title_factor_unique"),
+                        dcc.Dropdown([],
+                                     id="select_unique_factor",
+                                     multi=True,
+                                     searchable=False,
+                                     placeholder="Выберите 2 значения"),
+                        html.Div(id='body-error-median'),
                         html.Div([
-                            html.Div(
-                                children=dcc.Graph(
-                                    id="graph-median2",
-                                    responsive=False,
-                                ),
-                                className="col-12 card-graph",
-                            ),
-                            html.Div(
-                                children=dcc.Graph(
-                                    id="graph-diff",
-                                    responsive=False,
-                                ),
-                                className="col-12 card-graph",
-                            ),
-                            html.Div(
-                                children=dcc.Graph(
-                                    id="graph-summ",
-                                    responsive=False,
-                                ),
-                                className="col-12 card-graph",
-                            )
+                            html.Button('Запустить вычисление', id='submit-calc', n_clicks=0)
                         ],
-                            id='graphs_for_diff'),
-                    ]
-                )
+                            className="div_btn mt-3"),
+                        html.Div(id='output-median', children=[])
+                    ]),
+                ],
+                width=6,
+                className="offset-3 component-block",
+                id="calc-block",
+                style={'display': 'none'}),
+            dbc.Col(
+                children=[
+                    html.H3("Полученные графики",
+                            style={'text-align': 'center'}),
+                    dbc.Row(
+                        children=[
+                            html.Div(
+                                children=dcc.Graph(
+                                    id="graph-median1",
+                                    responsive=False,
+                                ),
+                                className="col-12 card-graph",
+                            ),
+                            html.Div([
+                                html.Div(
+                                    children=dcc.Graph(
+                                        id="graph-median2",
+                                        responsive=False,
+                                    ),
+                                    className="col-12 card-graph",
+                                ),
+                                html.Div(
+                                    children=dcc.Graph(
+                                        id="graph-diff",
+                                        responsive=False,
+                                    ),
+                                    className="col-12 card-graph",
+                                ),
+                                html.Div(
+                                    children=dcc.Graph(
+                                        id="graph-summ",
+                                        responsive=False,
+                                    ),
+                                    className="col-12 card-graph",
+                                )
+                            ],
+                                id='graphs_for_diff'),
+                        ]
+                    )
+                ],
+                width=8,
+                className="offset-2 component-block",
+                id="figure-block",
+                style={'display': 'none'})],
+            className="container-fluid content-fluid non_indent"),
+        html.Footer([
+            dbc.Col([
+                html.B("Контакты: "),
+                html.B("функциональная группа ИС и биостатистики "),
+                html.Br(),
+                html.A("alinaa@mail.ru"),
+                html.Br(),
+                html.A("valeria.eclerchig@yandex.ru"),
             ],
-            width=8,
-            className="offset-2 component-block",
-            id="figure-block",
-            style={'display': 'none'})],
-        className="container-fluid content-fluid non_indent"),
-    html.Footer([
-        dbc.Col([
-            html.B("Контакты:")
+                className="offset-1 col-3"),
+            dbc.Col([
+                html.B("© 2023, v1.1")
+            ],
+                className="offset-5 col-2 text-center")
         ],
-            className="offset-1 col-3")
-    ],
-        className="",
-        id="footer")
-]
-)
+            className="",
+            id="footer")
+    ]
+    )
+
+
+# -------LAYOUT--------
+app.layout = serve_layout
 
 
 def parse_contents(contents, filename):
@@ -386,7 +405,8 @@ def parse_contents(contents, filename):
                Input('submit-NA', 'n_clicks')],
               State('upload-data', 'filename'),
               State('table_data', 'data'),
-              State('table_data', 'columns'))
+              State('table_data', 'columns'),
+              prevent_initial_call=True)
 def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
     ctx_id = dash.callback_context.triggered_id
     style = {'display': 'none'}
@@ -423,7 +443,7 @@ def update_output(columns, data):
     columns = medianSystem.get_table().columns
     df = medianSystem.get_table()
     nas = df.isna().sum()
-    return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NaN значениями: {nas.max()}"
+    return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NA значениями: {nas.max()}"
 
 
 # ----------обновление уникальных значений----------
