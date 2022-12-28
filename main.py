@@ -405,8 +405,7 @@ def parse_contents(contents, filename):
                Input('submit-NA', 'n_clicks')],
               State('upload-data', 'filename'),
               State('table_data', 'data'),
-              State('table_data', 'columns'),
-              prevent_initial_call=True)
+              State('table_data', 'columns'), prevent_initial_call=True)
 def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
     ctx_id = dash.callback_context.triggered_id
     style = {'display': 'none'}
@@ -438,7 +437,7 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
                Output('num_row', 'children'),
                Output('num_na', 'children')],
               Input('table_data', 'columns'),
-              State('table_data', 'data'))
+              State('table_data', 'data'), prevent_initial_call=True)
 def update_output(columns, data):
     columns = medianSystem.get_table().columns
     df = medianSystem.get_table()
@@ -449,7 +448,7 @@ def update_output(columns, data):
 # ----------обновление уникальных значений----------
 @app.callback(
     Output("select_unique_factor", "options"),
-    Input("select_factor", "value")
+    Input("select_factor", "value"), prevent_initial_call=True
 )
 def update_output(column):
     df = medianSystem.get_table()
@@ -461,20 +460,19 @@ def update_output(column):
 # ----------обновление выбранных столбцов---------
 @app.callback(
     Output("select_column", "disabled"),
-    Input("select_column", "value")
-)
+    Input("select_column", "value"), prevent_initial_call=True)
 def update_output(columns):
     if not (isinstance(columns, list)):
         medianSystem.set_columns(columns, None)
     else:
         medianSystem.set_columns(columns[0], columns[1])
-    return PreventUpdate
+    raise PreventUpdate
 
 
 # -------обновление уровня значимости-------
 @app.callback(
     Output('alpha_variation', 'options'),
-    Input('alpha_variation', 'value')
+    Input('alpha_variation', 'value'), prevent_initial_call=True
 )
 def update_output(alpha):
     medianSystem.set_alpha(alpha)
@@ -484,8 +482,7 @@ def update_output(alpha):
 # -------обновление механизма удаления NA величин-------
 @app.callback(
     Output('imputation_variation', 'disabled'),
-    Input('imputation_variation', 'value')
-)
+    Input('imputation_variation', 'value'), prevent_initial_call=True)
 def update_output(variation):
     medianSystem.set_removerNA_engine(variation)
     raise PreventUpdate
@@ -503,7 +500,7 @@ def update_output(variation):
               Input('submit-calc', 'n_clicks'),
               State("select_unique_factor", "value"),
               State("select_factor", "value"),
-              State('select_column', 'value'))
+              State('select_column', 'value'), prevent_initial_call=True)
 def update_output(n_clicks, keys, factor, slt_columns):
     style_graphs_for_diff = {'display': 'block'}
     df = medianSystem.get_table()
@@ -560,7 +557,7 @@ def update_output(n_clicks, keys, factor, slt_columns):
                Output('select_unique_factor', 'style'),
                Output('title_factor_unique', 'style')],
               State("select_column", "value"),
-              Input('calc_variation', 'value'))
+              Input('calc_variation', 'value'), prevent_initial_call=True)
 def update_output(columns, variation):
     medianSystem.clear_columns()
     if columns is not None:

@@ -58,11 +58,12 @@ class CalcMedianSystem:
         self.__alpha = alpha
 
     def set_columns(self, title1, title2):
-        self.__columns[0] = self.__table[title1]
-        self.__titles[0] = title1
-        if title2 is not None:
-            self.__columns[1] = self.__table[title2]
-            self.__titles[1] = title2
+        if title1 is not None:
+            self.__columns[0] = self.__table[title1]
+            self.__titles[0] = title1
+            if title2 is not None:
+                self.__columns[1] = self.__table[title2]
+                self.__titles[1] = title2
 
     def grouped_columns(self, keys, factor, column):
         df = self.__table
