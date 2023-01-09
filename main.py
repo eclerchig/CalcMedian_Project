@@ -36,9 +36,6 @@ def build_table(data):
     ])
 
 
-
-
-
 # вывод текста ошибки
 def out_error(text):
     return html.P([
@@ -361,7 +358,7 @@ def serve_layout():
                 html.Br(),
                 html.A("valeria.eclerchig@yandex.ru"),
             ],
-                className="offset-1 col-3"),
+                className="offset-1 col-4"),
             dbc.Col([
                 html.B("© 2023, v1.1")
             ],
@@ -468,7 +465,6 @@ def update_output(columns):
         medianSystem.set_columns(columns[0], columns[1])
     raise PreventUpdate
 
-
 # -------обновление уровня значимости-------
 @app.callback(
     Output('alpha_variation', 'options'),
@@ -481,7 +477,7 @@ def update_output(alpha):
 
 # -------обновление механизма удаления NA величин-------
 @app.callback(
-    Output('imputation_variation', 'disabled'),
+    Output('imputation_variation', 'style'),
     Input('imputation_variation', 'value'), prevent_initial_call=True)
 def update_output(variation):
     medianSystem.set_removerNA_engine(variation)
@@ -557,7 +553,7 @@ def update_output(n_clicks, keys, factor, slt_columns):
                Output('select_unique_factor', 'style'),
                Output('title_factor_unique', 'style')],
               State("select_column", "value"),
-              Input('calc_variation', 'value'), prevent_initial_call=True)
+              Input('calc_variation', 'value'), prevent_initial_call=False)
 def update_output(columns, variation):
     medianSystem.clear_columns()
     if columns is not None:
@@ -595,5 +591,5 @@ def update_output(n_clicks):
 
 server = app.server
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 # host="0.0.0.0"

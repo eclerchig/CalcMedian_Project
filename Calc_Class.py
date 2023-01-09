@@ -101,10 +101,10 @@ class CalcMedianSystem:
 
     def set_removerNA_engine(self, variation):
         match variation:
-            case "v1": self.set_removerNA_engine(SimpleRemoveEngine())
-            case "v2": self.set_removerNA_engine(RemoveByMeanEngine())
-            case "v3": self.set_removerNA_engine(RemoveByMedianEngine())
-            case "v4": self.set_removerNA_engine(RemoveByInterpolationEngine())
+            case "v1": self.removerNAEngine = SimpleRemoveEngine()
+            case "v2": self.removerNAEngine = RemoveByMeanEngine()
+            case "v3": self.removerNAEngine = RemoveByMedianEngine()
+            case "v4": self.removerNAEngine = RemoveByInterpolationEngine()
             case _: print("RemoverNA not found")
 
     def set_builder_engine(self, engine: BuildGraphsEngine):
