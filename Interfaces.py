@@ -1,3 +1,11 @@
+
+"""
+    Определение интерфейсов и классов, реализующие интерфейсы для:
+                                    - вычисления медианы;
+                                    - для построения графиков;
+                                    - для обработки NA-значений.
+"""
+
 from abc import ABC, abstractmethod
 import plotly.graph_objs as go
 import plotly.express as px
@@ -7,9 +15,8 @@ import scipy.stats as sps
 import pandas as pd
 import math
 
-import calc_median
 
-
+# ----------Интерфейс вычисления медианы----------
 class CalculationEngine(ABC):
     Z_VALUES = {'90': 1.28,
                 '95': 1.96,
@@ -22,6 +29,7 @@ class CalculationEngine(ABC):
         pass
 
 
+# ----------Класс вычисления медианы для одной выборки----------
 class CalculationMedian(CalculationEngine):
     def find_median(self, median_class, num_column=0):
         alpha = median_class.get_alpha()
@@ -41,6 +49,7 @@ class CalculationMedian(CalculationEngine):
         return median_class.get_results()
 
 
+# ----------Класс вычисления медианы для зависимых выборок----------
 class CalculationDependentMedian(CalculationEngine):
 
     def __init__(self):
@@ -72,6 +81,7 @@ class CalculationDependentMedian(CalculationEngine):
                 median_class.get_diff_result()]
 
 
+# ----------Класс вычисления медианы для независимых выборок----------
 class CalculationIndependentMedian(CalculationEngine):
     def __init__(self):
         self.__calc_median = CalculationMedian()
@@ -83,7 +93,7 @@ class CalculationIndependentMedian(CalculationEngine):
         g2 = np.array(columns[1], float)
         g1 = g1[np.logical_not(np.isnan(g1))]
         g2 = g2[np.logical_not(np.isnan(g2))]
-        row = np.zeros(g1.size * g2.size)  # заполнение 0 массива размером g1*g2
+        row = np.zeros(g1.size * g2.size)
         k = (g1.size * g2.size) / 2 - (
                 self.Z_VALUES[alpha] * math.sqrt(g1.size * g2.size * (g1.size + g2.size + 1) / 12))
         count = 0
@@ -97,12 +107,12 @@ class CalculationIndependentMedian(CalculationEngine):
         median_class.set_diff_result({'median': np.median(row),
                                       'up': row[count - round(k)],
                                       'low': row[round(k) - 1],
-
                                       'data': row})
         return [self.__calc_median.find_median(median_class, 0), self.__calc_median.find_median(median_class, 1),
                 median_class.get_diff_result()]
 
 
+# ----------Интерфейс обработки NA-значений----------
 class RemoveNAEngine(ABC):
 
     @abstractmethod
@@ -110,12 +120,14 @@ class RemoveNAEngine(ABC):
         pass
 
 
+# ----------Класс для удаления NA-значений----------
 class SimpleRemoveEngine(RemoveNAEngine):
     def remove_na(self, median_class):
         table = median_class.get_table()
         median_class.set_table(table.dropna())
 
 
+# ----------Класс для замены NA-значений средним значением----------
 class RemoveByMeanEngine(RemoveNAEngine):
     def remove_na(self, median_class):
         table = median_class.get_table()
@@ -124,6 +136,7 @@ class RemoveByMeanEngine(RemoveNAEngine):
         median_class.set_table(table)
 
 
+# ----------Класс для замены NA-значений медианой----------
 class RemoveByMedianEngine(RemoveNAEngine):
     def remove_na(self, median_class):
         table = median_class.get_table()
@@ -133,25 +146,22 @@ class RemoveByMedianEngine(RemoveNAEngine):
         median_class.set_table(table)
 
 
+# ----------Класс для замены NA-значений значением через интерполяцию----------
 class RemoveByInterpolationEngine(RemoveNAEngine):
     def remove_na(self, median_class):
         table = median_class.get_table()
         median_class.set_table(table.interpolate(method="linear"))
 
 
+# ----------Интерфейс построения графиков----------
 class BuildGraphsEngine(ABC):
-    Z_VALUES = {'90': 1.28,
-                '95': 1.96,
-                '98': 2.32,
-                '99': 2.57,
-                '99,9': 3.29}
 
     @abstractmethod
     def build_graphs(self, median_class) -> list:
         pass
 
     @staticmethod
-    def to_build_distr(data, title):
+    def build_distr(data, title):
         median = data['median']
         low = data['low']
         up = data['up']
@@ -214,15 +224,14 @@ class BuildGraphsEngine(ABC):
         return line_distr
 
     @staticmethod
-    def to_build_intervals(median1, median2, median_diff, median_class):
-
+    def build_conf_intervals(median1, median2, median_diff, median_class):
         conf_intervals = go.Figure()
-        conf_intervals = BuildGraphsEngine.to_build_interval(median1['median'], median1['low'], median1['up'],
-                                                             median_class.get_titles()[0], 1, conf_intervals)
-        conf_intervals = BuildGraphsEngine.to_build_interval(median2['median'], median2['low'], median2['up'],
-                                                             median_class.get_titles()[1], 2, conf_intervals)
-        conf_intervals = BuildGraphsEngine.to_build_interval(median_diff['median'], median_diff['low'], median_diff['up'],
-                                                             median_class.get_titles(), 3, conf_intervals)
+        conf_intervals = BuildGraphsEngine.build_interval(median1['median'], median1['low'], median1['up'],
+                                                          median_class.get_titles()[0], 1, conf_intervals)
+        conf_intervals = BuildGraphsEngine.build_interval(median2['median'], median2['low'], median2['up'],
+                                                          median_class.get_titles()[1], 2, conf_intervals)
+        conf_intervals = BuildGraphsEngine.build_interval(median_diff['median'], median_diff['low'], median_diff['up'],
+                                                          median_class.get_titles(), 3, conf_intervals)
         conf_intervals.update_layout(
             title={
                 'text': 'Изображение доверительных интервалов',
@@ -232,7 +241,7 @@ class BuildGraphsEngine(ABC):
         return conf_intervals
 
     @staticmethod
-    def to_build_interval(median, err_low, err_up, column, num, figure):
+    def build_interval(median, err_low, err_up, column, num, figure):
         tail = 0.2
         if not (isinstance(column, list)):
             name = "ДИ медианы " + column
@@ -248,10 +257,11 @@ class BuildGraphsEngine(ABC):
         return go.Figure()
 
 
+# ----------Класс построения графиков для распределения медианы----------
 class BuildMedianGraphEngine(BuildGraphsEngine):
 
     def build_graphs(self, median_class):
-        figure_m1 = BuildGraphsEngine.to_build_distr(median_class.get_results()[0], median_class.get_titles()[0])
+        figure_m1 = BuildGraphsEngine.build_distr(median_class.get_results()[0], median_class.get_titles()[0])
         figure_m2 = BuildGraphsEngine.return_nan_figure()
         figure_diff = BuildGraphsEngine.return_nan_figure()
         conf_intervals = BuildGraphsEngine.return_nan_figure()
@@ -261,15 +271,16 @@ class BuildMedianGraphEngine(BuildGraphsEngine):
                 'conf_intervals': conf_intervals}
 
 
+# ----------Класс построения графиков для распределения разницы медиан----------
 class BuildDiffMedianGraphEngine(BuildGraphsEngine):
     def build_graphs(self, median_class):
         title1 = median_class.get_titles()[0]
         title2 = median_class.get_titles()[1]
-        figure_m1 = BuildGraphsEngine.to_build_distr(median_class.get_results()[0], title1)
-        figure_m2 = BuildGraphsEngine.to_build_distr(median_class.get_results()[1], title2)
-        figure_diff = BuildGraphsEngine.to_build_distr(median_class.get_diff_result(), 'Разница медиан \"' + title1 + '\" и \"' + title2 + '\"')
-        conf_intervals = BuildGraphsEngine.to_build_intervals(median_class.get_results()[0], median_class.get_results()[1],
-                                                              median_class.get_diff_result(), median_class)
+        figure_m1 = BuildGraphsEngine.build_distr(median_class.get_results()[0], title1)
+        figure_m2 = BuildGraphsEngine.build_distr(median_class.get_results()[1], title2)
+        figure_diff = BuildGraphsEngine.build_distr(median_class.get_diff_result(), 'Разница медиан \"' + title1 + '\" и \"' + title2 + '\"')
+        conf_intervals = BuildGraphsEngine.build_conf_intervals(median_class.get_results()[0], median_class.get_results()[1],
+                                                                median_class.get_diff_result(), median_class)
         return {'figure_m1': figure_m1,
                 'figure_m2': figure_m2,
                 'figure_diff': figure_diff,

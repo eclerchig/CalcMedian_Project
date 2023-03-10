@@ -1,24 +1,20 @@
-import math
-import pandas as pd
-import statistics
-import numpy as np
-import scipy.stats as sps
-import plotly.express as px
-import plotly.graph_objs as go
-import matplotlib.pyplot as plt
+"""
+    Модуль для определения класса, который хранит функции вычисления медианы:
+                                   - медиана и ДИ для одной выборки (v1);
+                                   - медиана и ДИ для независимых выборок (v2);
+                                   - медиана и ДИ для зависимых выборок (v3);
+    а также функции:
+                    - для вывода графиков;
+                    - для обработки NA-значений.
+"""
+
 from Interfaces import *
-z_values = {'90': 1.28,
-            '95': 1.96,
-            '98': 2.32,
-            '99': 2.57,
-            '99,9': 3.29}
 
 
 class CalcMedianSystem:
-
     def __init__(self):
         self.__table = []
-        self.__mode = "v1"  # v1 - simple median, v2 - independent samples, v3 - dependent samples
+        self.__mode = "v1"
         self.__columns = [None, None]
         self.__titles = [None, None]
         self.__results = [None, None]
@@ -49,7 +45,8 @@ class CalcMedianSystem:
             case "v3":
                 self.calculatorEngine = CalculationDependentMedian()
                 self.builderEngine = BuildDiffMedianGraphEngine()
-            case _: print("Calculator or Builder not found")
+            case _:
+                print("Calculator or Builder not found")
 
     def get_alpha(self):
         return self.__alpha
@@ -58,14 +55,14 @@ class CalcMedianSystem:
         self.__alpha = alpha
 
     def set_columns(self, title1, title2):
-        if title1 is not None:
+        if title1:
             self.__columns[0] = self.__table[title1]
             self.__titles[0] = title1
-            if title2 is not None:
+            if title2:
                 self.__columns[1] = self.__table[title2]
                 self.__titles[1] = title2
 
-    def grouped_columns(self, keys, factor, column):
+    def group_columns(self, keys, factor, column):
         df = self.__table
         self.__columns[0] = df[df[factor] == keys[0]][column]
         self.__titles[0] = f"{factor} {keys[0]} ({column})"
@@ -101,11 +98,16 @@ class CalcMedianSystem:
 
     def set_removerNA_engine(self, variation):
         match variation:
-            case "v1": self.removerNAEngine = SimpleRemoveEngine()
-            case "v2": self.removerNAEngine = RemoveByMeanEngine()
-            case "v3": self.removerNAEngine = RemoveByMedianEngine()
-            case "v4": self.removerNAEngine = RemoveByInterpolationEngine()
-            case _: print("RemoverNA not found")
+            case "v1":
+                self.removerNAEngine = SimpleRemoveEngine()
+            case "v2":
+                self.removerNAEngine = RemoveByMeanEngine()
+            case "v3":
+                self.removerNAEngine = RemoveByMedianEngine()
+            case "v4":
+                self.removerNAEngine = RemoveByInterpolationEngine()
+            case _:
+                print("RemoverNA not found")
 
     def set_builder_engine(self, engine: BuildGraphsEngine):
         self.builderEngine = engine
@@ -116,8 +118,6 @@ class CalcMedianSystem:
     def remove_na(self):
         self.removerNAEngine.remove_na(self)
         return self.__table
-
-    plt.style.use('seaborn-whitegrid')
 
     def output_graphs(self):
         return self.builderEngine.build_graphs(self)
