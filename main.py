@@ -1,8 +1,12 @@
+'''
+    Модуль для запуска программы, описания визуальных компонентов страницы сайта и
+    описания функция обратного вызова
+'''
+
 import base64
 import io
 import dash_bootstrap_components as dbc
 import dash
-import pandas as pd
 from dash.exceptions import PreventUpdate
 
 from dash.dependencies import Input, Output, State
@@ -19,24 +23,25 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc_css, d
 app.title = 'Доверительный интервал для медиан и их разностей: автоматизация расчета и визуализация'
 app._favicon = ("img//icon.png")
 
-df = pd.DataFrame()
+# Экземпляр класса для вычисления медианы
 medianSystem = CalcMedianSystem()
 
 
-# вывод таблицы
+# ----------Вывод таблицы (html-код)----------
 def build_table(data):
     return html.Div([
         dash_table.DataTable(
             data=data.to_dict('records'),
-            columns=[{'name': i, 'id': i, 'type': 'numeric',
+            columns=[{'name': i,
+                      'id': i,
+                      'type': 'numeric',
                       'format': Format(precision=2, scheme=Scheme.fixed, trim=Trim.yes)} for i in data.columns],
-
             id='table_data'
         )
     ])
 
 
-# вывод текста ошибки
+# ----------Вывод текста ошибки (html-код)----------
 def out_error(text):
     return html.P([
         html.B(["Ошибка: "]),
@@ -45,12 +50,14 @@ def out_error(text):
         style={'color': 'red'})
 
 
-# вывод текста результата
+# ----------Вывод текста результата (html-код)----------
 def build_result():
     median1 = np.round(medianSystem.get_results()[0]['median'], 2)
     low1 = np.round(medianSystem.get_results()[0]['low'], 2)
     up1 = np.round(medianSystem.get_results()[0]['up'], 2)
     alpha = medianSystem.get_alpha()
+
+    # Если существует результат разности медиан
     if medianSystem.get_diff_result() is not None:
         median2 = np.round(medianSystem.get_results()[1]['median'], 2)
         low2 = np.round(medianSystem.get_results()[1]['low'], 2)
@@ -82,8 +89,8 @@ def build_result():
         ])
 
 
+# ----------LAYOUT----------
 def serve_layout():
-    df = pd.DataFrame()
     return html.Div([
         dbc.Row([
             dbc.Col([
@@ -213,7 +220,7 @@ def serve_layout():
                 children=[
                     html.H3("Таблица данных"),
                     html.Div(
-                        children=[build_table(df)],
+                        children=[build_table(pd.DataFrame())],
                         id='output-data-upload',
                     ),
                     html.Div(
@@ -244,7 +251,8 @@ def serve_layout():
                                   html.B("Вычисление доверительного интервала для медианы: "),
                                   " вычисляется медиана и ДИ для одной выборки "
                                   " (необходимо  выбрать 1 столбец с данными выборки);", html.Br(),
-                                  html.B("Вычисление доверительного интервала разницы медиан для независимых выборок: "),
+                                  html.B(
+                                      "Вычисление доверительного интервала разницы медиан для независимых выборок: "),
                                   " вычисляются медианы и ДИ для 2 независимых выборок, разница медиан этих выборок и ее ДИ "
                                   " (необходимо выбрать 2 столбца из таблицы, определяющих группы данных для независимых выборок);",
                                   html.Br(),
@@ -370,11 +378,12 @@ def serve_layout():
     )
 
 
-# -------LAYOUT--------
 app.layout = serve_layout
 
 
+# ----------Загрузка файла----------
 def parse_contents(contents, filename):
+    df = pd.DataFrame()
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     if len(decoded) > 2097152:
@@ -394,7 +403,7 @@ def parse_contents(contents, filename):
     return build_table(df)
 
 
-# -------Перепостроение таблицы (включая обработку пропущенных значений)-------
+# ----------Перепостроение таблицы (включая обработку пропущенных значений)----------
 @app.callback([Output('output-data-upload', 'children'),
                Output('calc-block', 'style'),
                Output('body-error-upload', 'children')],
@@ -428,7 +437,7 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
     return children, style, ""
 
 
-# -------Обновление списка колонок--------
+# ----------Обновление списка колонок----------
 @app.callback([Output('select_column', 'options'),
                Output('select_factor', 'options'),
                Output('num_row', 'children'),
@@ -442,7 +451,7 @@ def update_output(columns, data):
     return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NA значениями: {nas.max()}"
 
 
-# ----------обновление уникальных значений----------
+# ----------Обновление уникальных значений----------
 @app.callback(
     Output("select_unique_factor", "options"),
     Input("select_factor", "value"), prevent_initial_call=True
@@ -454,7 +463,7 @@ def update_output(column):
     return [{'label': i, 'value': i} for i in unique_values]
 
 
-# ----------обновление выбранных столбцов---------
+# ----------Обновление выбранных столбцов---------
 @app.callback(
     Output("select_column", "disabled"),
     Input("select_column", "value"), prevent_initial_call=True)
@@ -465,7 +474,8 @@ def update_output(columns):
         medianSystem.set_columns(columns[0], columns[1])
     raise PreventUpdate
 
-# -------обновление уровня значимости-------
+
+# ----------Обновление уровня значимости----------
 @app.callback(
     Output('alpha_variation', 'options'),
     Input('alpha_variation', 'value'), prevent_initial_call=True
@@ -475,7 +485,7 @@ def update_output(alpha):
     raise PreventUpdate
 
 
-# -------обновление механизма удаления NA величин-------
+# ----------Обновление механизма удаления NA величин-----------
 @app.callback(
     Output('imputation_variation', 'style'),
     Input('imputation_variation', 'value'), prevent_initial_call=True)
@@ -484,7 +494,7 @@ def update_output(variation):
     raise PreventUpdate
 
 
-# -------вычисление медианы-------
+# ----------Вычисление медианы----------
 @app.callback([Output('output-median', 'children'),
                Output('figure-block', 'style'),
                Output('graph-median1', 'figure'),
@@ -502,6 +512,8 @@ def update_output(n_clicks, keys, factor, slt_columns):
     df = medianSystem.get_table()
     mode_median = medianSystem.get_mode()
     select_columns = medianSystem.get_titles()
+
+    # Определяем тип ошибки ввода
     if mode_median == 'v1':
         if select_columns[0] is None and n_clicks > 0:
             return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
@@ -517,7 +529,7 @@ def update_output(n_clicks, keys, factor, slt_columns):
                        dash.no_update, dash.no_update, dash.no_update, \
                        out_error("Количество группирующих значений не равно 2")
             else:
-                medianSystem.grouped_columns(keys, factor, slt_columns)
+                medianSystem.group_columns(keys, factor, slt_columns)
         if (select_columns[1] is None) and n_clicks > 0:
             return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
                    dash.no_update, dash.no_update, {'display': 'none'}, out_error("Количество столбцов не равно 2")
@@ -532,18 +544,22 @@ def update_output(n_clicks, keys, factor, slt_columns):
                 return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
                        dash.no_update, dash.no_update, {'display': 'none'}, out_error(
                     f"Неверный тип данных в столбце \"{slt_columns}\"")
+
     output = medianSystem.find_median()
+
     if "error" in output:
         return dash.no_update, {'display': 'none'}, dash.no_update, dash.no_update, \
                dash.no_update, dash.no_update, {'display': 'none'}, \
                out_error("Недостаточное количество данных в группах")
+
     graphs = medianSystem.output_graphs()
+
     return build_result(), {'display': 'block'}, \
            graphs['figure_m1'], graphs['figure_m2'], graphs['figure_diff'], graphs['conf_intervals'], \
            style_graphs_for_diff, ""
 
 
-# -------изменение настроек вычисления-------
+# ----------Изменение настроек вычисления----------
 @app.callback([Output('select_column', 'placeholder'),
                Output('select_column', 'multi'),
                Output('select_factor', 'placeholder'),
@@ -578,6 +594,7 @@ def update_output(columns, variation):
            style_factor, style_factor
 
 
+# ----------Загрузка файла для примера----------
 @app.callback(
     Output("download-example", "data"),
     Input("btn_ex", "n_clicks"),
@@ -592,4 +609,4 @@ def update_output(n_clicks):
 server = app.server
 if __name__ == '__main__':
     app.run_server(debug=True)
-# host="0.0.0.0"
+
