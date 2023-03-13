@@ -391,16 +391,14 @@ def parse_contents(contents, filename):
     try:
         if 'csv' in filename:
             df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-            medianSystem.set_table(df)
         elif ("xls" in filename) or ('xlsx' in filename):
             df = pd.read_excel(io.BytesIO(decoded))
-            medianSystem.set_table(df)
         else:
             return 'format_err'
     except Exception as e:
         print(e)
         return 'another_err'
-    return build_table(medianSystem.get_table())
+    return df   #build_table(medianSystem.get_table())
 
 
 # ----------Перепостроение таблицы (включая обработку пропущенных значений)----------
@@ -414,26 +412,24 @@ def parse_contents(contents, filename):
               State('table_data', 'columns'), prevent_initial_call=True)
 def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
     ctx_id = dash.callback_context.triggered_id
-    style = {'display': 'none'}
     if ctx_id == "upload-data":
         if list_of_contents is not None:
             if len(list_of_contents) > 1:
-                return dash.no_update, style, out_error("Было прикреплено больше одного файла")
-            children = [
-                parse_contents(c, n) for c, n in zip(list_of_contents, list_of_names)]
-            style = {'display': 'block'}
+                return dash.no_update, dash.no_update, out_error("Было прикреплено больше одного файла")
+            result = [parse_contents(c, n) for c, n in zip(list_of_contents, list_of_names)][0]
+            if not isinstance(result, str):
+                medianSystem.set_table(result)
+            else:
+                if result == 'size_err':
+                    return dash.no_update, dash.no_update, out_error("Размер файла больше 2Мбайт")
+                elif result == 'format_err':
+                    return dash.no_update, dash.no_update, out_error("Неверный формат файла")
+                elif result == 'another_err':
+                    return dash.no_update, dash.no_update, out_error("Неизвестная ошибка. Обратитесь к разработчику")
     elif ctx_id == "submit-NA":
-        children = [build_table(medianSystem.remove_na())]
-        style = {'display': 'block'}
-    # elif ctx_id is None:
-    #    children = [build_table(medianSystem.get_table())]
-    if isinstance(children[0], str) and (children[0] == 'size_err'):
-        return dash.no_update, dash.no_update, out_error("Размер файла больше 2Мбайт")
-    if isinstance(children[0], str) and (children[0] == 'format_err'):
-        return dash.no_update, dash.no_update, out_error("Неверный формат файла")
-    if isinstance(children[0], str) and (children[0] == 'another_err'):
-        return dash.no_update, dash.no_update, out_error("Неизвестная ошибка. Обратитесь к разработчику")
-    return children, style, ""
+        medianSystem.remove_na()
+    children = build_table(medianSystem.get_table())
+    return children, {'display': 'block'}, ""
 
 
 # ----------Обновление списка колонок----------
