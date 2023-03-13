@@ -433,17 +433,17 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
 
 
 # ----------Обновление списка колонок----------
-@app.callback([Output('select_column', 'options'),
-               Output('select_factor', 'options'),
-               Output('num_row', 'children'),
-               Output('num_na', 'children')],
-              Input('table_data', 'columns'),
-              State('table_data', 'data'), prevent_initial_call=True)
-def update_output(columns, data):
-    columns = medianSystem.get_table().columns
-    df = medianSystem.get_table()
-    nas = df.isna().sum()
-    return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NA значениями: {nas.max()}"
+# @app.callback([Output('select_column', 'options'),
+#                Output('select_factor', 'options'),
+#                Output('num_row', 'children'),
+#                Output('num_na', 'children')],
+#               Input('table_data', 'columns'),
+#               State('table_data', 'data'), prevent_initial_call=True)
+# def update_output(columns, data):
+#     columns = medianSystem.get_table().columns
+#     df = medianSystem.get_table()
+#     nas = df.isna().sum()
+#     return columns, columns, f"Количество записей: {df.shape[0]}", f"Количество записей с NA значениями: {nas.max()}"
 
 
 # ----------Обновление уникальных значений----------
