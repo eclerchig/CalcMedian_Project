@@ -400,7 +400,7 @@ def parse_contents(contents, filename):
     except Exception as e:
         print(e)
         return 'another_err'
-    return build_table(df)
+    return build_table(medianSystem.get_table())
 
 
 # ----------Перепостроение таблицы (включая обработку пропущенных значений)----------
@@ -420,14 +420,13 @@ def update_output(list_of_contents, n_clicks, list_of_names, data, columns):
             if len(list_of_contents) > 1:
                 return dash.no_update, style, out_error("Было прикреплено больше одного файла")
             children = [
-                parse_contents(c, n) for c, n in
-                zip(list_of_contents, list_of_names)]
+                parse_contents(c, n) for c, n in zip(list_of_contents, list_of_names)]
             style = {'display': 'block'}
     elif ctx_id == "submit-NA":
         children = [build_table(medianSystem.remove_na())]
         style = {'display': 'block'}
-    elif ctx_id is None:
-        children = [build_table(medianSystem.get_table())]
+    # elif ctx_id is None:
+    #    children = [build_table(medianSystem.get_table())]
     if isinstance(children[0], str) and (children[0] == 'size_err'):
         return dash.no_update, dash.no_update, out_error("Размер файла больше 2Мбайт")
     if isinstance(children[0], str) and (children[0] == 'format_err'):
