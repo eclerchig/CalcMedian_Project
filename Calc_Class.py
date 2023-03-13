@@ -116,7 +116,7 @@ class CalcMedianSystem:
         return self.calculatorEngine.find_median(self)
 
     def remove_na(self):
-        self.removerNAEngine.remove_na(self)
+        self.set_table(self.removerNAEngine.remove_na(self.get_table()))
         return self.__table
 
     def output_graphs(self):

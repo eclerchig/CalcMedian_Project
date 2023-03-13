@@ -116,41 +116,37 @@ class CalculationIndependentMedian(CalculationEngine):
 class RemoveNAEngine(ABC):
 
     @abstractmethod
-    def remove_na(self, median_class):
+    def remove_na(self, table):
         pass
 
 
 # ----------Класс для удаления NA-значений----------
 class SimpleRemoveEngine(RemoveNAEngine):
-    def remove_na(self, median_class):
-        table = median_class.get_table()
-        median_class.set_table(table.dropna())
+    def remove_na(self, table):
+        return table.dropna()
 
 
 # ----------Класс для замены NA-значений средним значением----------
 class RemoveByMeanEngine(RemoveNAEngine):
-    def remove_na(self, median_class):
-        table = median_class.get_table()
+    def remove_na(self, table):
         for col in table.columns:
             table[col].fillna(table[col].mean(), inplace=True)
-        median_class.set_table(table)
+        return table
 
 
 # ----------Класс для замены NA-значений медианой----------
 class RemoveByMedianEngine(RemoveNAEngine):
-    def remove_na(self, median_class):
-        table = median_class.get_table()
+    def remove_na(self, table):
         for col in table.columns:
             median = statistics.median(table[col])
             table[col].fillna(median, inplace=True)
-        median_class.set_table(table)
+        return table
 
 
 # ----------Класс для замены NA-значений значением через интерполяцию----------
 class RemoveByInterpolationEngine(RemoveNAEngine):
-    def remove_na(self, median_class):
-        table = median_class.get_table()
-        median_class.set_table(table.interpolate(method="linear"))
+    def remove_na(self, table):
+        return table.interpolate(method="linear")
 
 
 # ----------Интерфейс построения графиков----------

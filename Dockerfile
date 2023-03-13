@@ -10,6 +10,7 @@ RUN pip install gunicorn
 RUN git clone https://github.com/eclerchig/CalcMedian_Project.git
 WORKDIR "CalcMedian_Project"
 RUN pip install -r requirements.txt
+RUN pip install scipy==1.10.0
 ARG WORKER_ENV=3
 ENV WORKER_ENV="${WORKER_ENV}"
-CMD ["sh", "-c", "gunicorn --bind :8111 --workers $WORKER_ENV main:server"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:8000 --workers $WORKER_ENV main:server"]
