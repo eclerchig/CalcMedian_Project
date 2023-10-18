@@ -1,4 +1,4 @@
-FROM python:bullseye
+FROM python:3.11-bullseye
 
 RUN mkdir "docker_app"
 WORKDIR "docker_app"
